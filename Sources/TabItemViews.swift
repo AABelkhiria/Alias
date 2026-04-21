@@ -203,9 +203,8 @@ struct PasswordTabView: View {
                     ForEach(tab.passwords) { item in
                         PasswordRowView(
                             item: item,
-                            tabId: tab.id,
-                            decryptFn: { itemId, password in
-                                appState.decryptPassword(tabId: tab.id, itemId: itemId, userPassword: password)
+                            getSecretFn: { password in
+                                appState.getPassword(tabId: tab.id, itemId: item.id, userPassword: password)
                             },
                             deleteFn: {
                                 appState.deletePasswordItem(from: tab.id, itemId: item.id)
@@ -270,8 +269,7 @@ enum PasswordRowState {
 
 struct PasswordRowView: View {
     let item: PasswordItem
-    let tabId: UUID
-    let decryptFn: (UUID, String) -> String?
+    let getSecretFn: (String?) -> String?
     let deleteFn: () -> Void
     
     @State private var state: PasswordRowState = .hidden
@@ -279,6 +277,8 @@ struct PasswordRowView: View {
     @State private var decryptedPassword: String = ""
     @State private var showCopied: Bool = false
     @State private var showError: Bool = false
+    
+    private var isEncrypted: Bool { item.isEncrypted }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -338,40 +338,52 @@ struct PasswordRowView: View {
     
     private var revealFormView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Enter password to reveal")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            HStack {
-                SecureField("Password", text: $passwordInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            if isEncrypted {
+                Text("Enter password to reveal")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
-                Button("Reveal") {
-                    if let decrypted = decryptFn(item.id, passwordInput) {
-                        decryptedPassword = decrypted
+                HStack {
+                    SecureField("Password", text: $passwordInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    Button("Reveal") {
+                        if let decrypted = getSecretFn(passwordInput) {
+                            decryptedPassword = decrypted
+                            passwordInput = ""
+                            withAnimation {
+                                state = .revealed
+                            }
+                        } else {
+                            showError = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(passwordInput.isEmpty)
+                    
+                    Button("Cancel") {
                         passwordInput = ""
+                        state = .hidden
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+                
+                if showError {
+                    Text("Incorrect password")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            } else {
+                Button("Reveal (no password)") {
+                    if let decrypted = getSecretFn(nil) {
+                        decryptedPassword = decrypted
                         withAnimation {
                             state = .revealed
                         }
-                    } else {
-                        showError = true
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(passwordInput.isEmpty)
-                
-                Button("Cancel") {
-                    passwordInput = ""
-                    state = .hidden
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
-            }
-            
-            if showError {
-                Text("Incorrect password")
-                    .font(.caption)
-                    .foregroundColor(.red)
             }
         }
     }
@@ -415,76 +427,111 @@ struct PasswordRowView: View {
     
     private var deleteFormView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Enter password to delete")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            HStack {
-                SecureField("Password", text: $passwordInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button("Delete") {
-                    if let decrypted = decryptFn(item.id, passwordInput) {
-                        passwordInput = ""
-                        decryptedPassword = decrypted
-                        deleteFn()
-                    } else {
-                        showError = true
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(passwordInput.isEmpty)
-                
-                Button("Cancel") {
-                    passwordInput = ""
-                    state = .hidden
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
-            }
-            
-            if showError {
-                Text("Incorrect password")
+            if isEncrypted {
+                Text("Enter password to delete")
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(.secondary)
+                
+                HStack {
+                    SecureField("Password", text: $passwordInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    Button("Delete") {
+                        if let decrypted = getSecretFn(passwordInput) {
+                            passwordInput = ""
+                            decryptedPassword = decrypted
+                            deleteFn()
+                        } else {
+                            showError = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(passwordInput.isEmpty)
+                    
+                    Button("Cancel") {
+                        passwordInput = ""
+                        state = .hidden
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+                
+                if showError {
+                    Text("Incorrect password")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            } else {
+                Text("Delete this entry?")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                HStack {
+                    Button("Delete") {
+                        deleteFn()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    
+                    Button("Cancel") {
+                        state = .hidden
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
             }
         }
     }
     
     private var copyFormView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Enter password to copy")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            HStack {
-                SecureField("Password", text: $passwordInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            if isEncrypted {
+                Text("Enter password to copy")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
-                Button("Copy") {
-                    if let decrypted = decryptFn(item.id, passwordInput) {
-                        copyToClipboard(decrypted)
+                HStack {
+                    SecureField("Password", text: $passwordInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    Button("Copy") {
+                        if let decrypted = getSecretFn(passwordInput) {
+                            copyToClipboard(decrypted)
+                            passwordInput = ""
+                            state = .hidden
+                        } else {
+                            showError = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(passwordInput.isEmpty)
+                    
+                    Button("Cancel") {
                         passwordInput = ""
                         state = .hidden
-                    } else {
-                        showError = true
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+                
+                if showError {
+                    Text("Incorrect password")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            } else {
+                Button("Copy (no password)") {
+                    if let decrypted = getSecretFn(nil) {
+                        copyToClipboard(decrypted)
+                        state = .hidden
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(passwordInput.isEmpty)
                 
                 Button("Cancel") {
-                    passwordInput = ""
                     state = .hidden
                 }
                 .buttonStyle(.plain)
                 .foregroundColor(.secondary)
-            }
-            
-            if showError {
-                Text("Incorrect password")
-                    .font(.caption)
-                    .foregroundColor(.red)
             }
         }
     }

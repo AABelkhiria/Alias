@@ -23,16 +23,14 @@ struct CommandItem: Identifiable, Codable, Equatable {
 struct PasswordItem: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
-    var encryptedSecret: Data
-    var salt: Data
-    var usesSeparateEncryptionPassword: Bool
+    var secret: String
+    var isEncrypted: Bool
     
-    init(id: UUID = UUID(), name: String, encryptedSecret: Data, salt: Data, usesSeparateEncryptionPassword: Bool = false) {
+    init(id: UUID = UUID(), name: String, secret: String, isEncrypted: Bool) {
         self.id = id
         self.name = name
-        self.encryptedSecret = encryptedSecret
-        self.salt = salt
-        self.usesSeparateEncryptionPassword = usesSeparateEncryptionPassword
+        self.secret = secret
+        self.isEncrypted = isEncrypted
     }
 }
 
@@ -185,16 +183,21 @@ class AppState: ObservableObject {
     }
     
     func addPasswordItem(to tabId: UUID, name: String, secret: String, encryptionPassword: String?) {
-        do {
-            let keyPassword = encryptionPassword ?? secret
-            let usesSeparate = encryptionPassword != nil
-            let (encrypted, salt) = try CryptoService.shared.encrypt(secret: secret, using: keyPassword)
-            let newItem = PasswordItem(name: name, encryptedSecret: encrypted, salt: salt, usesSeparateEncryptionPassword: usesSeparate)
+        if encryptionPassword == nil || encryptionPassword?.isEmpty == true {
+            let newItem = PasswordItem(name: name, secret: secret, isEncrypted: false)
             if let index = tabs.firstIndex(where: { $0.id == tabId }) {
                 tabs[index].passwords.append(newItem)
             }
-        } catch {
-            print("Failed to encrypt password: \(error)")
+        } else {
+            do {
+                let (encrypted, salt) = try CryptoService.shared.encrypt(secret: secret, using: encryptionPassword!)
+                let newItem = PasswordItem(name: name, secret: "\(salt.base64EncodedString()):\(encrypted.base64EncodedString())", isEncrypted: true)
+                if let index = tabs.firstIndex(where: { $0.id == tabId }) {
+                    tabs[index].passwords.append(newItem)
+                }
+            } catch {
+                print("Failed to encrypt password: \(error)")
+            }
         }
     }
     
@@ -204,7 +207,7 @@ class AppState: ObservableObject {
         }
     }
     
-    func decryptPassword(tabId: UUID, itemId: UUID, userPassword: String) -> String? {
+    func getPassword(tabId: UUID, itemId: UUID, userPassword: String? = nil) -> String? {
         guard let tabIndex = tabs.firstIndex(where: { $0.id == tabId }),
               let itemIndex = tabs[tabIndex].passwords.firstIndex(where: { $0.id == itemId }) else {
             return nil
@@ -212,14 +215,19 @@ class AppState: ObservableObject {
         
         let item = tabs[tabIndex].passwords[itemIndex]
         
-        do {
-            return try CryptoService.shared.decrypt(
-                encryptedData: item.encryptedSecret,
-                salt: item.salt,
-                using: userPassword
-            )
-        } catch {
-            return nil
+        if item.isEncrypted {
+            guard let password = userPassword else { return nil }
+            do {
+                let parts = item.secret.split(separator: ":", maxSplits: 1)
+                guard parts.count == 2 else { return nil }
+                let salt = Data(base64Encoded: String(parts[0]))!
+                let encryptedData = Data(base64Encoded: String(parts[1]))!
+                return try CryptoService.shared.decrypt(encryptedData: encryptedData, salt: salt, using: password)
+            } catch {
+                return nil
+            }
+        } else {
+            return item.secret
         }
     }
     

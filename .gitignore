@@ -1,0 +1,19 @@
+.DS_Store
+*.swp
+*~
+
+# Build outputs
+build/
+*.app
+*.dSYM
+
+# Xcode
+.xcode/
+xcuserdata/
+DerivedData/
+
+# Swift Package Manager
+.swiftpm/
+
+# VS Code
+.vscode/

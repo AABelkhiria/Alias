@@ -43,7 +43,9 @@ struct ContentView: View {
                                 if let previousId = appState.selectedTabId, previousId != tab.id {
                                     appState.lockTab(id: previousId)
                                 }
-                                appState.selectedTabId = tab.id
+                                DispatchQueue.main.async {
+                                    appState.selectedTabId = tab.id
+                                }
                             } onRenameCommit: { id, newTitle in
                                 appState.updateTab(id: id, newTitle: newTitle)
                                 renamingTabId = nil

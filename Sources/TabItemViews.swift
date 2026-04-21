@@ -343,13 +343,21 @@ struct PasswordRowView: View {
                 } else {
                     if let decrypted = getSecretFn(nil) {
                         copyToClipboard(decrypted)
+                        withAnimation {
+                            showCopied = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showCopied = false
+                            }
+                        }
                     }
                 }
             }) {
-                Image(systemName: "doc.on.doc")
+                Image(systemName: showCopied ? "checkmark.circle.fill" : "doc.on.doc")
             }
             .buttonStyle(.plain)
-            .foregroundColor(.accentColor)
+            .foregroundColor(showCopied ? .green : .accentColor)
         }
     }
     

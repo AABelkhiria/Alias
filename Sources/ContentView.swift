@@ -5,6 +5,12 @@ struct ContentView: View {
     @State private var showingAddTab = false
     @State private var newTabTitle = ""
     @State private var newTabType: TabType = .command
+    @State private var newTabPassword = ""
+    
+    @State private var showingTabPasswordPrompt = false
+    @State private var tabPasswordInput = ""
+    @State private var tabPasswordError = false
+    @State private var pendingTabId: UUID?
     
     // For renaming
     @State private var renamingTabId: UUID?
@@ -42,8 +48,11 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
                 .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
-                    AddTabView { title, type in
+                    AddTabView { title, type, password in
                         appState.addTab(title: title, type: type)
+                        if let lastTab = appState.tabs.last, let password = password {
+                            appState.setTabPassword(id: lastTab.id, password: password)
+                        }
                         showingAddTab = false
                     }
                 }
@@ -55,13 +64,36 @@ struct ContentView: View {
             
             // Content Area
             if let selectedTab = appState.tabs.first(where: { $0.id == appState.selectedTabId }) {
+                let isLocked = selectedTab.tabPasswordHash != nil && !appState.isTabUnlocked(id: selectedTab.id)
+                
                 Group {
-                    if selectedTab.type == .command {
-                        CommandTabView(tab: selectedTab)
-                    } else if selectedTab.type == .note {
-                        NoteTabView(tab: selectedTab)
-                    } else if selectedTab.type == .password {
-                        PasswordTabView(tab: selectedTab)
+                    if isLocked {
+                        LockedTabView(
+                            tabName: selectedTab.title,
+                            password: $tabPasswordInput,
+                            error: tabPasswordError,
+                            onUnlock: {
+                                if appState.unlockTab(id: selectedTab.id, password: tabPasswordInput) {
+                                    tabPasswordInput = ""
+                                    tabPasswordError = false
+                                } else {
+                                    tabPasswordError = true
+                                }
+                            },
+                            onCancel: {
+                                appState.selectedTabId = appState.tabs.first?.id
+                                tabPasswordInput = ""
+                                tabPasswordError = false
+                            }
+                        )
+                    } else {
+                        if selectedTab.type == .command {
+                            CommandTabView(tab: selectedTab)
+                        } else if selectedTab.type == .note {
+                            NoteTabView(tab: selectedTab)
+                        } else if selectedTab.type == .password {
+                            PasswordTabView(tab: selectedTab)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -88,6 +120,18 @@ struct TabPill: View {
     var onSelect: () -> Void
     var onRenameCommit: (UUID, String) -> Void
     
+    private var iconName: String {
+        if tab.tabPasswordHash != nil {
+            return "lock.fill"
+        }
+        if tab.type == .command {
+            return "terminal"
+        } else if tab.type == .password {
+            return "key.fill"
+        }
+        return "note.text"
+    }
+    
     var body: some View {
         Group {
             if renamingTabId == tab.id {
@@ -98,7 +142,7 @@ struct TabPill: View {
                 .frame(width: 100)
             } else {
                 HStack(spacing: 6) {
-                    Image(systemName: tab.type == .command ? "terminal" : (tab.type == .password ? "lock.fill" : "note.text"))
+                    Image(systemName: iconName)
                         .font(.system(size: 10))
                     Text(tab.title)
                         .font(.system(size: 13, weight: isActive ? .semibold : .regular))
@@ -129,8 +173,9 @@ struct TabPill: View {
 struct AddTabView: View {
     @State private var title: String = ""
     @State private var type: TabType = .command
+    @State private var tabPassword: String = ""
     
-    var onAdd: (String, TabType) -> Void
+    var onAdd: (String, TabType, String?) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -147,9 +192,12 @@ struct AddTabView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             
+            SecureField("Tab Password (optional)", text: $tabPassword)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
             Button("Add") {
                 if !title.isEmpty {
-                    onAdd(title, type)
+                    onAdd(title, type, tabPassword.isEmpty ? nil : tabPassword)
                 }
             }
             .disabled(title.isEmpty)
@@ -158,5 +206,55 @@ struct AddTabView: View {
         }
         .padding()
         .frame(width: 250)
+    }
+}
+
+// Locked Tab View
+struct LockedTabView: View {
+    let tabName: String
+    @Binding var password: String
+    let error: Bool
+    let onUnlock: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            
+            Image(systemName: "lock.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+            
+            Text(tabName)
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("Enter password to unlock")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            SecureField("Password", text: $password)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .frame(width: 200)
+            
+            if error {
+                Text("Incorrect password")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                
+                Button("Unlock", action: onUnlock)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(password.isEmpty)
+            }
+            
+            Spacer()
+        }
+        .padding()
     }
 }

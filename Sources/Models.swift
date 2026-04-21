@@ -41,14 +41,18 @@ struct TabItem: Identifiable, Codable, Equatable {
     var content: String
     var commands: [CommandItem]
     var passwords: [PasswordItem]
+    var tabPasswordHash: String?
+    var tabPasswordSalt: Data?
     
-    init(id: UUID = UUID(), title: String, type: TabType, content: String = "", commands: [CommandItem] = [], passwords: [PasswordItem] = []) {
+    init(id: UUID = UUID(), title: String, type: TabType, content: String = "", commands: [CommandItem] = [], passwords: [PasswordItem] = [], tabPasswordHash: String? = nil, tabPasswordSalt: Data? = nil) {
         self.id = id
         self.title = title
         self.type = type
         self.content = content
         self.commands = commands
         self.passwords = passwords
+        self.tabPasswordHash = tabPasswordHash
+        self.tabPasswordSalt = tabPasswordSalt
     }
 }
 
@@ -105,6 +109,24 @@ class CryptoService {
         _ = salt.withUnsafeMutableBytes { SecRandomCopyBytes(kSecRandomDefault, 32, $0.baseAddress!) }
         return salt
     }
+    
+    func hashPassword(_ password: String) -> (hash: String, salt: Data) {
+        let salt = generateSalt()
+        let passwordData = Data(password.utf8)
+        let derivedKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: passwordData),
+            salt: salt,
+            info: Data("AliasTabPassword".utf8),
+            outputByteCount: 32
+        )
+        let hashData = derivedKey.withUnsafeBytes { Data($0) }
+        return (hashData.base64EncodedString(), salt)
+    }
+    
+    func verifyPassword(_ password: String, hash: String, salt: Data) -> Bool {
+        let (computedHash, _) = hashPassword(password)
+        return computedHash == hash
+    }
 }
 
 class AppState: ObservableObject {
@@ -115,11 +137,47 @@ class AppState: ObservableObject {
     }
     
     @Published var selectedTabId: UUID?
+    @Published var unlockedTabIds: Set<UUID> = []
     
     private let userDefaultsKey = "com.alias.app.tabs"
     
     init() {
         load()
+    }
+    
+    func isTabUnlocked(id: UUID) -> Bool {
+        return unlockedTabIds.contains(id)
+    }
+    
+    func unlockTab(id: UUID, password: String) -> Bool {
+        guard let tabIndex = tabs.firstIndex(where: { $0.id == id }),
+              let hash = tabs[tabIndex].tabPasswordHash,
+              let salt = tabs[tabIndex].tabPasswordSalt else {
+            return false
+        }
+        
+        if CryptoService.shared.verifyPassword(password, hash: hash, salt: salt) {
+            unlockedTabIds.insert(id)
+            return true
+        }
+        return false
+    }
+    
+    func lockTab(id: UUID) {
+        unlockedTabIds.remove(id)
+    }
+    
+    func setTabPassword(id: UUID, password: String?) {
+        if let index = tabs.firstIndex(where: { $0.id == id }) {
+            if let password = password, !password.isEmpty {
+                let (hash, salt) = CryptoService.shared.hashPassword(password)
+                tabs[index].tabPasswordHash = hash
+                tabs[index].tabPasswordSalt = salt
+            } else {
+                tabs[index].tabPasswordHash = nil
+                tabs[index].tabPasswordSalt = nil
+            }
+        }
     }
     
     private func load() {

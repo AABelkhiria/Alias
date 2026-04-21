@@ -1,21 +1,28 @@
 #!/bin/bash
+set -e
+
 APP_NAME="Alias"
 APP_BUNDLE="${APP_NAME}.app"
 MACOS_DIR="${APP_BUNDLE}/Contents/MacOS"
-RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
+CONTENTS_DIR="${APP_BUNDLE}/Contents"
+RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
-echo "Building ${APP_NAME}..."
+echo "Building ${APP_NAME} with SPM..."
 rm -rf "${APP_BUNDLE}"
 mkdir -p "${MACOS_DIR}"
 mkdir -p "${RESOURCES_DIR}"
 
-swiftc Sources/*.swift -o "${MACOS_DIR}/${APP_NAME}"
+# Build using SPM
+swift build -c release
 
-# Create PkgInfo (this helps macOS recognize it as an application bundle)
-echo -n "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
+# Copy built executable
+cp .build/release/${APP_NAME} "${MACOS_DIR}/${APP_NAME}"
 
-echo "Creating Info.plist..."
-cat <<EOF > "${APP_BUNDLE}/Contents/Info.plist"
+# Create PkgInfo (identifies as macOS application)
+echo -n "APPL????"> "${CONTENTS_DIR}/PkgInfo"
+
+# Create Info.plist
+cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -34,14 +41,15 @@ cat <<EOF > "${APP_BUNDLE}/Contents/Info.plist"
 	<string>1</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
 </dict>
 </plist>
 EOF
 
-# Force LaunchServices to refresh the app bundle
-touch "${APP_BUNDLE}"
-/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f "${APP_BUNDLE}" 2>/dev/null || true
+# Ad-hoc code sign (optional, for development)
+codesign --force --deep - "${APP_BUNDLE}" 2>/dev/null || true
 
-echo "Build complete."
+echo "Build complete: ${APP_BUNDLE}"

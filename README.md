@@ -46,8 +46,8 @@ The app will appear in your menu bar with a terminal icon.
 
 ## Requirements
 
-- macOS 12.0 (Monterey) or later
-- Xcode 14.0 or later (for building from source)
+- macOS 13.0 (Ventura) or later
+- Swift 5.9 or later (for building from source)
 
 ## License
 

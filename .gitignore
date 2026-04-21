@@ -4,6 +4,7 @@
 
 # Build outputs
 build/
+.build/
 *.app
 *.dSYM
 
@@ -11,9 +12,6 @@ build/
 .xcode/
 xcuserdata/
 DerivedData/
-
-# Swift Package Manager
-.swiftpm/
 
 # VS Code
 .vscode/

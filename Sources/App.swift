@@ -9,6 +9,12 @@ struct MenuBarApp: App {
             ContentView()
                 .environmentObject(appState)
                 .frame(width: 400, height: 350)
+            
+            Divider()
+            
+            Button("Quit Alias") {
+                NSApplication.shared.terminate(nil)
+            }
         }
         .menuBarExtraStyle(.window)
     }

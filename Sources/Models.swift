@@ -124,8 +124,15 @@ class CryptoService {
     }
     
     func verifyPassword(_ password: String, hash: String, salt: Data) -> Bool {
-        let (computedHash, _) = hashPassword(password)
-        return computedHash == hash
+        let passwordData = Data(password.utf8)
+        let derivedKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: passwordData),
+            salt: salt,
+            info: Data("AliasTabPassword".utf8),
+            outputByteCount: 32
+        )
+        let computedHashData = derivedKey.withUnsafeBytes { Data($0) }
+        return computedHashData.base64EncodedString() == hash
     }
 }
 

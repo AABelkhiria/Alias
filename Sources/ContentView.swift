@@ -12,6 +12,11 @@ struct ContentView: View {
     @State private var tabPasswordError = false
     @State private var pendingTabId: UUID?
     
+    @State private var showingDeleteConfirm = false
+    @State private var deleteTabId: UUID?
+    @State private var deletePasswordInput = ""
+    @State private var deletePasswordError = false
+    
     // For renaming
     @State private var renamingTabId: UUID?
     @State private var renameTitle = ""
@@ -26,7 +31,15 @@ struct ContentView: View {
                             TabPill(tab: tab, 
                                     isActive: appState.selectedTabId == tab.id,
                                     renamingTabId: $renamingTabId,
-                                    renameTitle: $renameTitle) {
+                                    renameTitle: $renameTitle,
+                                    onDeleteWithPassword: { show, tabId in
+                                        if show {
+                                            showingDeleteConfirm = true
+                                            deleteTabId = tabId
+                                        } else if let id = tabId {
+                                            appState.deleteTab(id: id)
+                                        }
+                                    }) {
                                 appState.selectedTabId = tab.id
                             } onRenameCommit: { id, newTitle in
                                 appState.updateTab(id: id, newTitle: newTitle)
@@ -105,6 +118,54 @@ struct ContentView: View {
                     .background(Color(NSColor.controlBackgroundColor))
             }
         }
+        .sheet(isPresented: $showingDeleteConfirm) {
+            VStack(spacing: 20) {
+                Text("Delete Protected Tab")
+                    .font(.headline)
+                
+                Text("Enter password to delete this tab")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                SecureField("Password", text: $deletePasswordInput)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .frame(width: 200)
+                
+                if deletePasswordError {
+                    Text("Incorrect password")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+                
+                HStack {
+                    Button("Cancel") {
+                        showingDeleteConfirm = false
+                        deleteTabId = nil
+                        deletePasswordInput = ""
+                        deletePasswordError = false
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                    
+                    Button("Delete") {
+                        if let tabId = deleteTabId,
+                           appState.unlockTab(id: tabId, password: deletePasswordInput) {
+                            appState.deleteTab(id: tabId)
+                            showingDeleteConfirm = false
+                            deleteTabId = nil
+                            deletePasswordInput = ""
+                            deletePasswordError = false
+                        } else {
+                            deletePasswordError = true
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(deletePasswordInput.isEmpty)
+                }
+            }
+            .padding(40)
+            .frame(width: 300)
+        }
     }
 }
 
@@ -116,6 +177,8 @@ struct TabPill: View {
     
     @Binding var renamingTabId: UUID?
     @Binding var renameTitle: String
+    
+    var onDeleteWithPassword: (Bool, UUID?) -> Void
     
     var onSelect: () -> Void
     var onRenameCommit: (UUID, String) -> Void
@@ -161,7 +224,7 @@ struct TabPill: View {
                         renamingTabId = tab.id
                     }
                     Button("Delete", role: .destructive) {
-                        appState.deleteTab(id: tab.id)
+                        onDeleteWithPassword(tab.tabPasswordHash != nil, tab.id)
                     }
                 }
             }

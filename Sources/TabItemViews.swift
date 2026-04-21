@@ -316,7 +316,16 @@ struct PasswordRowView: View {
             
             Spacer()
             
-            Button(action: { state = .revealForm }) {
+            Button(action: {
+                if isEncrypted {
+                    state = .revealForm
+                } else {
+                    if let decrypted = getSecretFn(nil) {
+                        decryptedPassword = decrypted
+                        withAnimation { state = .revealed }
+                    }
+                }
+            }) {
                 Image(systemName: "eye")
             }
             .buttonStyle(.plain)
@@ -328,7 +337,15 @@ struct PasswordRowView: View {
             .buttonStyle(.plain)
             .foregroundColor(.red)
             
-            Button(action: { state = .copyForm }) {
+            Button(action: {
+                if isEncrypted {
+                    state = .copyForm
+                } else {
+                    if let decrypted = getSecretFn(nil) {
+                        copyToClipboard(decrypted)
+                    }
+                }
+            }) {
                 Image(systemName: "doc.on.doc")
             }
             .buttonStyle(.plain)

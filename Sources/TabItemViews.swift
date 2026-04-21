@@ -186,3 +186,201 @@ struct NoteTabView: View {
         }
     }
 }
+
+struct PasswordTabView: View {
+    @EnvironmentObject var appState: AppState
+    let tab: TabItem
+    
+    @State private var showingAddSheet = false
+    @State private var newName = ""
+    @State private var newPassword = ""
+    @State private var revealingItemId: UUID?
+    @State private var decryptedPasswords: [UUID: String] = [:]
+    @State private var revealPasswordError: UUID?
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(tab.passwords) { item in
+                        PasswordRowView(
+                            item: item,
+                            isRevealed: revealingItemId == item.id,
+                            revealedPassword: decryptedPasswords[item.id],
+                            onReveal: { promptPassword(for: item.id) },
+                            onDelete: { appState.deletePasswordItem(from: tab.id, itemId: item.id) },
+                            onHide: {
+                                withAnimation {
+                                    revealingItemId = nil
+                                    decryptedPasswords.removeValue(forKey: item.id)
+                                }
+                            }
+                        )
+                        .contextMenu {
+                            Button("Delete", role: .destructive) {
+                                appState.deletePasswordItem(from: tab.id, itemId: item.id)
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+            
+            Divider()
+            
+            HStack {
+                Spacer()
+                Button(action: { showingAddSheet = true }) {
+                    Image(systemName: "plus")
+                    Text("Add Password")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+                .padding()
+            }
+            .background(Color(NSColor.controlBackgroundColor))
+        }
+        .sheet(isPresented: $showingAddSheet) {
+            AddPasswordSheet(
+                name: $newName,
+                password: $newPassword,
+                onSave: {
+                    if !newName.isEmpty && !newPassword.isEmpty {
+                        appState.addPasswordItem(to: tab.id, name: newName, password: newPassword)
+                        newName = ""
+                        newPassword = ""
+                        showingAddSheet = false
+                    }
+                },
+                onCancel: {
+                    newName = ""
+                    newPassword = ""
+                    showingAddSheet = false
+                }
+            )
+        }
+        .onChange(of: tab.id) { _ in
+            revealingItemId = nil
+            decryptedPasswords.removeAll()
+        }
+    }
+    
+    private func promptPassword(for itemId: UUID) {
+        let alert = NSAlert()
+        alert.messageText = "Enter Password"
+        alert.informativeText = "Enter the password to decrypt this entry."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Reveal")
+        alert.addButton(withTitle: "Cancel")
+        
+        let input = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        alert.accessoryView = input
+        
+        if alert.runModal() == .alertFirstButtonReturn {
+            let password = input.stringValue
+            if let decrypted = appState.decryptPassword(tabId: tab.id, itemId: itemId, userPassword: password) {
+                withAnimation {
+                    revealingItemId = itemId
+                    decryptedPasswords[itemId] = decrypted
+                }
+            } else {
+                let errorAlert = NSAlert()
+                errorAlert.messageText = "Incorrect Password"
+                errorAlert.informativeText = "The password you entered is incorrect."
+                errorAlert.alertStyle = .warning
+                errorAlert.addButton(withTitle: "OK")
+                errorAlert.runModal()
+            }
+        }
+    }
+}
+
+struct PasswordRowView: View {
+    let item: PasswordItem
+    let isRevealed: Bool
+    let revealedPassword: String?
+    let onReveal: () -> Void
+    let onDelete: () -> Void
+    let onHide: () -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name)
+                    .font(.headline)
+                
+                if isRevealed, let password = revealedPassword {
+                    Text(password)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("••••••••")
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            if isRevealed {
+                Button(action: onHide) {
+                    Image(systemName: "eye.slash")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+            } else {
+                Button(action: onReveal) {
+                    Image(systemName: "eye")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+            }
+            
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+struct AddPasswordSheet: View {
+    @Binding var name: String
+    @Binding var password: String
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Add Password")
+                .font(.headline)
+            
+            TextField("Name", text: $name)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            SecureField("Password", text: $password)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Button("Save", action: onSave)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(name.isEmpty || password.isEmpty)
+            }
+        }
+        .padding()
+        .frame(width: 300)
+    }
+}

@@ -60,6 +60,8 @@ struct ContentView: View {
                         CommandTabView(tab: selectedTab)
                     } else if selectedTab.type == .note {
                         NoteTabView(tab: selectedTab)
+                    } else if selectedTab.type == .password {
+                        PasswordTabView(tab: selectedTab)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -96,7 +98,7 @@ struct TabPill: View {
                 .frame(width: 100)
             } else {
                 HStack(spacing: 6) {
-                    Image(systemName: tab.type == .command ? "terminal" : "note.text")
+                    Image(systemName: tab.type == .command ? "terminal" : (tab.type == .password ? "lock.fill" : "note.text"))
                         .font(.system(size: 10))
                     Text(tab.title)
                         .font(.system(size: 13, weight: isActive ? .semibold : .regular))
@@ -141,6 +143,7 @@ struct AddTabView: View {
             Picker("Type", selection: $type) {
                 Text("Command").tag(TabType.command)
                 Text("Note").tag(TabType.note)
+                Text("Password").tag(TabType.password)
             }
             .pickerStyle(SegmentedPickerStyle())
             

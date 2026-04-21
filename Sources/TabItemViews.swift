@@ -193,7 +193,8 @@ struct PasswordTabView: View {
     
     @State private var showingAddForm = false
     @State private var newName = ""
-    @State private var newPassword = ""
+    @State private var newSecret = ""
+    @State private var newEncryptionPassword = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -215,18 +216,22 @@ struct PasswordTabView: View {
                     if showingAddForm {
                         AddPasswordForm(
                             name: $newName,
-                            password: $newPassword,
+                            secret: $newSecret,
+                            encryptionPassword: $newEncryptionPassword,
                             onSave: {
-                                if !newName.isEmpty && !newPassword.isEmpty {
-                                    appState.addPasswordItem(to: tab.id, name: newName, password: newPassword)
+                                if !newName.isEmpty && !newSecret.isEmpty {
+                                    let encPassword = newEncryptionPassword.isEmpty ? nil : newEncryptionPassword
+                                    appState.addPasswordItem(to: tab.id, name: newName, secret: newSecret, encryptionPassword: encPassword)
                                     newName = ""
-                                    newPassword = ""
+                                    newSecret = ""
+                                    newEncryptionPassword = ""
                                     showingAddForm = false
                                 }
                             },
                             onCancel: {
                                 newName = ""
-                                newPassword = ""
+                                newSecret = ""
+                                newEncryptionPassword = ""
                                 showingAddForm = false
                             }
                         )
@@ -503,7 +508,8 @@ struct PasswordRowView: View {
 
 struct AddPasswordForm: View {
     @Binding var name: String
-    @Binding var password: String
+    @Binding var secret: String
+    @Binding var encryptionPassword: String
     let onSave: () -> Void
     let onCancel: () -> Void
     
@@ -515,7 +521,10 @@ struct AddPasswordForm: View {
             TextField("Name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             
-            SecureField("Password", text: $password)
+            SecureField("Secret/Key", text: $secret)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            SecureField("Encryption Password (optional)", text: $encryptionPassword)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             
             HStack {
@@ -527,7 +536,7 @@ struct AddPasswordForm: View {
                 
                 Button("Save", action: onSave)
                     .buttonStyle(.borderedProminent)
-                    .disabled(name.isEmpty || password.isEmpty)
+                    .disabled(name.isEmpty || secret.isEmpty)
             }
         }
         .padding(12)

@@ -23,14 +23,16 @@ struct CommandItem: Identifiable, Codable, Equatable {
 struct PasswordItem: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
-    var encryptedPassword: Data
+    var encryptedSecret: Data
     var salt: Data
+    var usesSeparateEncryptionPassword: Bool
     
-    init(id: UUID = UUID(), name: String, encryptedPassword: Data, salt: Data) {
+    init(id: UUID = UUID(), name: String, encryptedSecret: Data, salt: Data, usesSeparateEncryptionPassword: Bool = false) {
         self.id = id
         self.name = name
-        self.encryptedPassword = encryptedPassword
+        self.encryptedSecret = encryptedSecret
         self.salt = salt
+        self.usesSeparateEncryptionPassword = usesSeparateEncryptionPassword
     }
 }
 
@@ -76,12 +78,12 @@ class CryptoService {
         return derivedKey
     }
     
-    func encrypt(password: String, using userPassword: String) throws -> (encrypted: Data, salt: Data) {
+    func encrypt(secret: String, using userPassword: String) throws -> (encrypted: Data, salt: Data) {
         let salt = generateSalt()
         let key = deriveKey(password: userPassword, salt: salt)
-        let passwordData = Data(password.utf8)
+        let secretData = Data(secret.utf8)
         
-        guard let sealedBox = try? AES.GCM.seal(passwordData, using: key) else {
+        guard let sealedBox = try? AES.GCM.seal(secretData, using: key) else {
             throw CryptoError.encryptionFailed
         }
         
@@ -182,10 +184,12 @@ class AppState: ObservableObject {
         }
     }
     
-    func addPasswordItem(to tabId: UUID, name: String, password: String) {
+    func addPasswordItem(to tabId: UUID, name: String, secret: String, encryptionPassword: String?) {
         do {
-            let (encrypted, salt) = try CryptoService.shared.encrypt(password: password, using: password)
-            let newItem = PasswordItem(name: name, encryptedPassword: encrypted, salt: salt)
+            let keyPassword = encryptionPassword ?? secret
+            let usesSeparate = encryptionPassword != nil
+            let (encrypted, salt) = try CryptoService.shared.encrypt(secret: secret, using: keyPassword)
+            let newItem = PasswordItem(name: name, encryptedSecret: encrypted, salt: salt, usesSeparateEncryptionPassword: usesSeparate)
             if let index = tabs.firstIndex(where: { $0.id == tabId }) {
                 tabs[index].passwords.append(newItem)
             }
@@ -210,7 +214,7 @@ class AppState: ObservableObject {
         
         do {
             return try CryptoService.shared.decrypt(
-                encryptedData: item.encryptedPassword,
+                encryptedData: item.encryptedSecret,
                 salt: item.salt,
                 using: userPassword
             )

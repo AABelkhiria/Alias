@@ -1,121 +1,167 @@
 import SwiftUI
 
-// MARK: - Command Tab View
-
 struct CommandTabView: View {
     @EnvironmentObject var appState: AppState
     let tab: TabItem
     
-    @State private var commandText: String = ""
-    @State private var isEditing: Bool = false
-    @State private var showCopiedIndicator = false
+    @State private var editingCommandId: UUID?
+    @State private var editTitle: String = ""
+    @State private var editCommand: String = ""
+    @State private var showCopiedId: UUID?
     
     var body: some View {
-        VStack(spacing: 20) {
-            if isEditing {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Edit Command:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    TextEditor(text: $commandText)
-                        .font(.system(.body, design: .monospaced))
-                        .padding(4)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(tab.commands) { command in
+                        CommandRowView(
+                            command: command,
+                            isEditing: editingCommandId == command.id,
+                            isCopied: showCopiedId == command.id,
+                            onCopy: { copyCommand(command.command, id: command.id) },
+                            onEdit: {
+                                editTitle = command.title
+                                editCommand = command.command
+                                editingCommandId = command.id
+                            },
+                            onSave: {
+                                appState.updateCommand(tabId: tab.id, commandId: command.id, title: editTitle, command: editCommand)
+                                editingCommandId = nil
+                            },
+                            onCancel: {
+                                editingCommandId = nil
+                            },
+                            onDelete: {
+                                appState.deleteCommand(from: tab.id, commandId: command.id)
+                            }
                         )
-                    
-                    HStack {
-                        Spacer()
-                        Button("Cancel") {
-                            commandText = tab.content
-                            isEditing = false
-                        }
-                        Button("Save") {
-                            appState.updateContent(id: tab.id, newContent: commandText)
-                            isEditing = false
-                        }
-                        .buttonStyle(.borderedProminent)
                     }
                 }
                 .padding()
-            } else {
+            }
+            
+            Divider()
+            
+            HStack {
                 Spacer()
-                
-                Text(tab.content.isEmpty ? "No command stored" : tab.content)
-                    .font(.system(size: 16, design: .monospaced))
-                    .multilineTextAlignment(.center)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                
                 Button(action: {
-                    copyToClipboard(tab.content)
+                    appState.addCommand(to: tab.id)
                 }) {
-                    HStack {
-                        Image(systemName: showCopiedIndicator ? "checkmark.circle.fill" : "doc.on.doc")
-                        Text(showCopiedIndicator ? "Copied!" : "Copy Command")
-                    }
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: 200)
-                    .background(showCopiedIndicator ? Color.green : Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    Image(systemName: "plus")
+                    Text("Add Command")
                 }
                 .buttonStyle(.plain)
-                .disabled(tab.content.isEmpty)
-                
-                Spacer()
-                
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        isEditing = true
-                    }) {
-                        Image(systemName: "pencil")
-                        Text("Edit")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
-                    .padding()
-                }
+                .foregroundColor(.accentColor)
+                .padding()
             }
-        }
-        .onAppear {
-            commandText = tab.content
+            .background(Color(NSColor.controlBackgroundColor))
         }
         .onChange(of: tab.id) { _ in
-            // Reset state when tab changes
-            commandText = tab.content
-            isEditing = false
-            showCopiedIndicator = false
+            editingCommandId = nil
+            showCopiedId = nil
         }
     }
     
-    private func copyToClipboard(_ text: String) {
+    private func copyCommand(_ text: String, id: UUID) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         
         withAnimation {
-            showCopiedIndicator = true
+            showCopiedId = id
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
-                showCopiedIndicator = false
+                showCopiedId = nil
             }
         }
     }
 }
 
-// MARK: - Note Tab View
+struct CommandRowView: View {
+    let command: CommandItem
+    let isEditing: Bool
+    let isCopied: Bool
+    let onCopy: () -> Void
+    let onEdit: () -> Void
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    let onDelete: () -> Void
+    
+    @State private var editTitle: String = ""
+    @State private var editCommand: String = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isEditing {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Title", text: $editTitle)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    TextField("Command", text: $editCommand)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.system(.body, design: .monospaced))
+                    
+                    HStack {
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                            Text("Delete")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.red)
+                        
+                        Spacer()
+                        
+                        Button("Cancel", action: onCancel)
+                        Button("Save", action: onSave)
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+                .padding(8)
+                .background(Color(NSColor.textBackgroundColor))
+                .cornerRadius(8)
+            } else {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(command.title)
+                            .font(.headline)
+                        Text(command.command)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: onCopy) {
+                        Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                            .foregroundColor(isCopied ? .green : .accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(command.command.isEmpty)
+                    
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                }
+                .padding(12)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+            }
+        }
+        .onAppear {
+            editTitle = command.title
+            editCommand = command.command
+        }
+    }
+}
 
 struct NoteTabView: View {
     @EnvironmentObject var appState: AppState
@@ -129,7 +175,6 @@ struct NoteTabView: View {
                 .font(.body)
                 .padding()
                 .onChange(of: noteText) { newValue in
-                    // Autosave changes
                     appState.updateContent(id: tab.id, newContent: newValue)
                 }
         }

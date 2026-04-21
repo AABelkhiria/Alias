@@ -484,17 +484,20 @@ struct PasswordRowView: View {
                     .foregroundColor(.secondary)
                 
                 HStack {
-                    Button("Delete") {
-                        deleteFn()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
                     Button("Cancel") {
                         state = .hidden
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button("Delete") {
+                        deleteFn()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
     }

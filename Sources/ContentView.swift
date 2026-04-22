@@ -155,11 +155,17 @@ struct ContentView: View {
                     Button("Delete") {
                         if let tabId = deleteTabId,
                            appState.unlockTab(id: tabId, password: deletePasswordInput) {
-                            appState.deleteTab(id: tabId)
+                            let wasSelected = appState.selectedTabId == tabId
                             showingDeleteConfirm = false
                             deleteTabId = nil
                             deletePasswordInput = ""
                             deletePasswordError = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                appState.deleteTab(id: tabId)
+                                if wasSelected {
+                                    appState.selectedTabId = appState.tabs.first?.id
+                                }
+                            }
                         } else {
                             deletePasswordError = true
                         }

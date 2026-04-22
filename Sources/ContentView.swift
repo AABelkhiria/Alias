@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showingSettings = false
     @State private var showingAddTab = false
     @State private var newTabTitle = ""
     @State private var newTabType: TabType = .command
@@ -23,8 +24,35 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Tab Bar Area
-            HStack(spacing: 8) {
+            // Top Bar
+            HStack {
+                Text("Alias")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Text("v0.1")
+                    .font(.caption2)
+                    .foregroundColor(.secondary.opacity(0.5))
+                
+                Button(action: { showingSettings.toggle() }) {
+                    Image(systemName: "gearshape")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            if showingSettings {
+                SettingsContentView()
+            } else {
+                // Tab Bar Area
+                HStack(spacing: 8) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(appState.tabs) { tab in
@@ -127,6 +155,7 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(NSColor.controlBackgroundColor))
+            }
             }
         }
         .sheet(isPresented: $showingDeleteConfirm) {

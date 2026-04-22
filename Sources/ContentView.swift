@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var deleteTabId: UUID?
     @State private var deletePasswordInput = ""
     @State private var deletePasswordError = false
+    @State private var isDeleteProtected = false
     
     // For renaming
     @State private var renamingTabId: UUID?
@@ -60,14 +61,9 @@ struct ContentView: View {
                                     isActive: appState.selectedTabId == tab.id,
                                     renamingTabId: $renamingTabId,
                                     renameTitle: $renameTitle,
-                                    onDeleteWithPassword: { show, tabId in
-                                        if show {
-                                            showingDeleteConfirm = true
-                                            deleteTabId = tabId
-                                        } else if let id = tabId {
-                                            appState.deleteTab(id: id)
-                                        }
-                                    }) {
+                                    showingDeleteConfirm: $showingDeleteConfirm,
+                                    deleteTabId: $deleteTabId,
+                                    isDeleteProtected: $isDeleteProtected) {
                                 if let previousId = appState.selectedTabId, previousId != tab.id {
                                     let currentTab = appState.tabs.first { $0.id == previousId }
                                     let needsLock = currentTab?.tabPasswordHash != nil
@@ -160,53 +156,88 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingDeleteConfirm) {
             VStack(spacing: 20) {
-                Text("Delete Protected Tab")
-                    .font(.headline)
-                
-                Text("Enter password to delete this tab")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                SecureField("Password", text: $deletePasswordInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(width: 200)
-                
-                if deletePasswordError {
-                    Text("Incorrect password")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-                
-                HStack {
-                    Button("Cancel") {
-                        showingDeleteConfirm = false
-                        deleteTabId = nil
-                        deletePasswordInput = ""
-                        deletePasswordError = false
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
+                if isDeleteProtected {
+                    Text("Delete Protected Tab")
+                        .font(.headline)
                     
-                    Button("Delete") {
-                        if let tabId = deleteTabId,
-                           appState.unlockTab(id: tabId, password: deletePasswordInput) {
-                            let wasSelected = appState.selectedTabId == tabId
+                    Text("Enter password to delete this tab")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    SecureField("Password", text: $deletePasswordInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 200)
+                    
+                    if deletePasswordError {
+                        Text("Incorrect password")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    
+                    HStack {
+                        Button("Cancel") {
                             showingDeleteConfirm = false
                             deleteTabId = nil
                             deletePasswordInput = ""
                             deletePasswordError = false
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                appState.deleteTab(id: tabId)
-                                if wasSelected {
-                                    appState.selectedTabId = appState.tabs.first?.id
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                        
+                        Button("Delete") {
+                            if let tabId = deleteTabId,
+                               appState.unlockTab(id: tabId, password: deletePasswordInput) {
+                                let wasSelected = appState.selectedTabId == tabId
+                                showingDeleteConfirm = false
+                                deleteTabId = nil
+                                deletePasswordInput = ""
+                                deletePasswordError = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    appState.deleteTab(id: tabId)
+                                    if wasSelected {
+                                        appState.selectedTabId = appState.tabs.first?.id
+                                    }
+                                }
+                            } else {
+                                deletePasswordError = true
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(deletePasswordInput.isEmpty)
+                    }
+                } else {
+                    if let tabToDelete = appState.tabs.first(where: { $0.id == deleteTabId }) {
+                        Text("Delete \"\(tabToDelete.title)\"?")
+                            .font(.headline)
+                        
+                        Text("This action cannot be undone.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        HStack {
+                            Button("Cancel") {
+                                showingDeleteConfirm = false
+                                deleteTabId = nil
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.secondary)
+                            
+                            Button("Delete") {
+                                if let tabId = deleteTabId {
+                                    let wasSelected = appState.selectedTabId == tabId
+                                    showingDeleteConfirm = false
+                                    deleteTabId = nil
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        appState.deleteTab(id: tabId)
+                                        if wasSelected {
+                                            appState.selectedTabId = appState.tabs.first?.id
+                                        }
+                                    }
                                 }
                             }
-                        } else {
-                            deletePasswordError = true
+                            .buttonStyle(.borderedProminent)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(deletePasswordInput.isEmpty)
                 }
             }
             .padding(40)
@@ -223,8 +254,9 @@ struct TabPill: View {
     
     @Binding var renamingTabId: UUID?
     @Binding var renameTitle: String
-    
-    var onDeleteWithPassword: (Bool, UUID?) -> Void
+    @Binding var showingDeleteConfirm: Bool
+    @Binding var deleteTabId: UUID?
+    @Binding var isDeleteProtected: Bool
     
     var onSelect: () -> Void
     var onRenameCommit: (UUID, String) -> Void
@@ -270,7 +302,9 @@ struct TabPill: View {
                         renamingTabId = tab.id
                     }
                     Button("Delete", role: .destructive) {
-                        onDeleteWithPassword(tab.tabPasswordHash != nil, tab.id)
+                        isDeleteProtected = tab.tabPasswordHash != nil
+                        showingDeleteConfirm = true
+                        deleteTabId = tab.id
                     }
                 }
             }

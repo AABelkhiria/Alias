@@ -301,6 +301,23 @@ class AppState: ObservableObject {
         if selectedTabId == id {
             selectedTabId = tabs.first?.id
         }
+        unlockedTabIds.remove(id)
+    }
+    
+    func moveTab(from source: IndexSet, to destination: Int) {
+        var tabsArray = tabs
+        let sourceIndex = source.first!
+        let isMovingUp = sourceIndex < destination
+        
+        let tab = tabsArray.remove(at: sourceIndex)
+        
+        var adjustedDestination = destination
+        if isMovingUp {
+            adjustedDestination -= 1
+        }
+        
+        tabsArray.insert(tab, at: min(adjustedDestination, tabsArray.count))
+        tabs = tabsArray
     }
     
     func updateTab(id: UUID, newTitle: String) {

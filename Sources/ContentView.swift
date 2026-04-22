@@ -41,11 +41,17 @@ struct ContentView: View {
                                         }
                                     }) {
                                 if let previousId = appState.selectedTabId, previousId != tab.id {
-                                    appState.lockTab(id: previousId)
+                                    let currentTab = appState.tabs.first { $0.id == previousId }
+                                    let needsLock = currentTab?.tabPasswordHash != nil
+                                    if needsLock {
+                                        appState.lockTab(id: previousId)
+                                        DispatchQueue.main.async {
+                                            appState.selectedTabId = tab.id
+                                        }
+                                        return
+                                    }
                                 }
-                                DispatchQueue.main.async {
-                                    appState.selectedTabId = tab.id
-                                }
+                                appState.selectedTabId = tab.id
                             } onRenameCommit: { id, newTitle in
                                 appState.updateTab(id: id, newTitle: newTitle)
                                 renamingTabId = nil

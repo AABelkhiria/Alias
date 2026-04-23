@@ -146,10 +146,26 @@ class AppState: ObservableObject {
     @Published var selectedTabId: UUID?
     @Published var unlockedTabIds: Set<UUID> = []
     
+    @Published var windowWidth: CGFloat = 400 {
+        didSet { saveWindowSize() }
+    }
+    @Published var windowHeight: CGFloat = 350 {
+        didSet { saveWindowSize() }
+    }
+    
+    static let defaultWidth: CGFloat = 400
+    static let defaultHeight: CGFloat = 350
+    static let minWidth: CGFloat = 300
+    static let maxWidth: CGFloat = 800
+    static let minHeight: CGFloat = 250
+    static let maxHeight: CGFloat = 1000
+    
     private let userDefaultsKey = "com.alias.app.tabs"
+    private let windowSizeKey = "com.alias.app.windowSize"
     
     init() {
         load()
+        loadWindowSize()
     }
     
     func isTabUnlocked(id: UUID) -> Bool {
@@ -213,6 +229,30 @@ class AppState: ObservableObject {
         if let encoded = try? JSONEncoder().encode(tabs) {
             UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
         }
+    }
+    
+    private func loadWindowSize() {
+        if let data = UserDefaults.standard.dictionary(forKey: windowSizeKey),
+           let w = data["width"] as? CGFloat,
+           let h = data["height"] as? CGFloat {
+            windowWidth = w
+            windowHeight = h
+        }
+    }
+    
+    private func saveWindowSize() {
+        let data: [String: CGFloat] = ["width": windowWidth, "height": windowHeight]
+        UserDefaults.standard.set(data, forKey: windowSizeKey)
+    }
+    
+    func updateWindowSize(width: CGFloat, height: CGFloat) {
+        windowWidth = max(AppState.minWidth, min(width, AppState.maxWidth))
+        windowHeight = max(AppState.minHeight, min(height, AppState.maxHeight))
+    }
+    
+    func resetWindowSize() {
+        windowWidth = AppState.defaultWidth
+        windowHeight = AppState.defaultHeight
     }
     
     func addTab(title: String, type: TabType) {

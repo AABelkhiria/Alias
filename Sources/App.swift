@@ -9,7 +9,7 @@ struct MenuBarApp: App {
         MenuBarExtra("Alias", systemImage: "terminal") {
             ContentView()
                 .environmentObject(appState)
-                .frame(width: 400, height: 350)
+                .frame(width: appState.windowWidth, height: appState.windowHeight)
         }
         .menuBarExtraStyle(.window)
     }

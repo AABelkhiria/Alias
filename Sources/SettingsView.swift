@@ -12,6 +12,7 @@ struct SettingsContentView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Tabs Section
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Tabs")
@@ -76,6 +77,11 @@ struct SettingsContentView: View {
             
             Divider()
             
+            // Window Size Section
+            WindowSizeSettingsView()
+            
+            Divider()
+            
             Button(action: { NSApplication.shared.terminate(nil) }) {
                 HStack {
                     Image(systemName: "power")
@@ -131,6 +137,125 @@ struct SettingsContentView: View {
         if targetIndex != currentIndex {
             appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }
+    }
+}
+
+struct WindowSizeSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var showingEditPopover = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Window Size")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                HStack(spacing: 12) {
+                    Button(action: { appState.resetWindowSize() }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reset to default size")
+                    
+                    Button(action: { showingEditPopover = true }) {
+                        Image(systemName: "pencil")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingEditPopover, arrowEdge: .bottom) {
+                        EditWindowSizeView(
+                            width: appState.windowWidth,
+                            height: appState.windowHeight
+                        ) { newW, newH in
+                            appState.updateWindowSize(width: newW, height: newH)
+                            showingEditPopover = false
+                        } onCancel: {
+                            showingEditPopover = false
+                        }
+                    }
+                }
+            }
+            
+            HStack(spacing: 20) {
+                Label {
+                    Text("\(Int(appState.windowWidth))")
+                } icon: {
+                    Text("W:").fontWeight(.semibold).foregroundColor(.secondary)
+                }
+                
+                Label {
+                    Text("\(Int(appState.windowHeight))")
+                } icon: {
+                    Text("H:").fontWeight(.semibold).foregroundColor(.secondary)
+                }
+            }
+            .font(.system(.body, design: .monospaced))
+        }
+    }
+}
+
+struct EditWindowSizeView: View {
+    @State private var width: Double
+    @State private var height: Double
+    
+    var onSave: (CGFloat, CGFloat) -> Void
+    var onCancel: () -> Void
+    
+    init(width: CGFloat, height: CGFloat, onSave: @escaping (CGFloat, CGFloat) -> Void, onCancel: @escaping () -> Void) {
+        _width = State(initialValue: Double(width))
+        _height = State(initialValue: Double(height))
+        self.onSave = onSave
+        self.onCancel = onCancel
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Edit Window Size")
+                .font(.headline)
+            
+            VStack(spacing: 10) {
+                HStack {
+                    Text("Width:")
+                    Spacer()
+                    TextField("", value: $width, format: .number)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 60)
+                }
+                
+                HStack {
+                    Text("Height:")
+                    Spacer()
+                    TextField("", value: $height, format: .number)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .frame(width: 60)
+                }
+            }
+            
+            Text("Min: \(Int(AppState.minWidth))x\(Int(AppState.minHeight)) / Max: \(Int(AppState.maxWidth))x\(Int(AppState.maxHeight))")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button("Save") {
+                    onSave(CGFloat(width), CGFloat(height))
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .frame(width: 220)
     }
 }
 
@@ -209,65 +334,73 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
             }
             
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Tabs")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Button(action: { showingAddTab = true }) {
-                        Image(systemName: "plus")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
-                        AddTabView { title, type, password in
-                            appState.addTab(title: title, type: type)
-                            if let lastTab = appState.tabs.last, let password = password {
-                                appState.setTabPassword(id: lastTab.id, password: password)
-                            }
-                            newTabTitle = ""
-                            showingAddTab = false
-                        }
-                    }
-                }
-                
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Top indicator
-                        dropIndicator(at: 0)
-                        
-                        ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
-                            TabSettingsRow(tab: tab)
-                                .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
-                                .offset(draggingTabId == tab.id ? dragOffset : .zero)
-                                .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
-                                .animation(Animation.default, value: draggingTabId)
-                                .gesture(
-                                    DragGesture()
-                                        .onChanged { value in
-                                            if draggingTabId == nil {
-                                                draggingTabId = tab.id
-                                            }
-                                            dragOffset = value.translation
-                                            updateDropTargetIndex(currentIndex: index, translation: value.translation)
-                                        }
-                                        .onEnded { _ in
-                                            if let targetIndex = dropTargetIndex, let dragId = draggingTabId {
-                                                handleDrop(tabId: dragId, at: targetIndex)
-                                            }
-                                            draggingTabId = nil
-                                            dragOffset = .zero
-                                            dropTargetIndex = nil
-                                        }
-                                )
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Tabs Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Tabs")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                             
-                            // Bottom indicator for each row
-                            dropIndicator(at: index + 1)
+                            Spacer()
+                            
+                            Button(action: { showingAddTab = true }) {
+                                Image(systemName: "plus")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
+                                AddTabView { title, type, password in
+                                    appState.addTab(title: title, type: type)
+                                    if let lastTab = appState.tabs.last, let password = password {
+                                        appState.setTabPassword(id: lastTab.id, password: password)
+                                    }
+                                    newTabTitle = ""
+                                    showingAddTab = false
+                                }
+                            }
+                        }
+                        
+                        VStack(spacing: 0) {
+                            // Top indicator
+                            dropIndicator(at: 0)
+                            
+                            ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
+                                TabSettingsRow(tab: tab)
+                                    .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
+                                    .offset(draggingTabId == tab.id ? dragOffset : .zero)
+                                    .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
+                                    .animation(Animation.default, value: draggingTabId)
+                                    .gesture(
+                                        DragGesture()
+                                            .onChanged { value in
+                                                if draggingTabId == nil {
+                                                    draggingTabId = tab.id
+                                                }
+                                                dragOffset = value.translation
+                                                updateDropTargetIndex(currentIndex: index, translation: value.translation)
+                                            }
+                                            .onEnded { _ in
+                                                if let targetIndex = dropTargetIndex, let dragId = draggingTabId {
+                                                    handleDrop(tabId: dragId, at: targetIndex)
+                                                }
+                                                draggingTabId = nil
+                                                dragOffset = .zero
+                                                dropTargetIndex = nil
+                                            }
+                                    )
+                                
+                                // Bottom indicator for each row
+                                dropIndicator(at: index + 1)
+                            }
                         }
                     }
+                    
+                    Divider()
+                    
+                    // Window Size Section
+                    WindowSizeSettingsView()
                 }
             }
             
@@ -283,7 +416,8 @@ struct SettingsView: View {
             .buttonStyle(.plain)
         }
         .padding()
-        .frame(width: 350, height: 320)
+        .background(Color(NSColor.windowBackgroundColor))
+        .frame(width: 350, height: 400)
     }
     
     @ViewBuilder
@@ -329,3 +463,4 @@ struct SettingsView: View {
         }
     }
 }
+

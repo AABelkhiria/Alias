@@ -198,7 +198,6 @@ struct CommandRowView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(command.title)
                             .font(.headline)
-                        // Command text is now hidden
                     }
                     
                     Spacer()

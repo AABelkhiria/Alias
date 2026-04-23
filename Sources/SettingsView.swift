@@ -128,7 +128,6 @@ struct TabSettingsRow: View {
     let tab: TabItem
     
     @State private var showingDeletePopover = false
-    @State private var pendingDeleteTab: TabItem?
     
     var body: some View {
         HStack {
@@ -141,7 +140,6 @@ struct TabSettingsRow: View {
             Spacer()
             
             Button(action: {
-                pendingDeleteTab = tab
                 showingDeletePopover = true
             }) {
                 Image(systemName: "trash")
@@ -149,15 +147,11 @@ struct TabSettingsRow: View {
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showingDeletePopover, arrowEdge: .bottom) {
-                if let tabToDelete = pendingDeleteTab {
-                    DeleteTabView(tab: tabToDelete) {
-                        appState.deleteTab(id: tabToDelete.id)
-                        showingDeletePopover = false
-                        pendingDeleteTab = nil
-                    } onCancel: {
-                        showingDeletePopover = false
-                        pendingDeleteTab = nil
-                    }
+                DeleteTabView(tab: tab) {
+                    appState.deleteTab(id: tab.id)
+                    showingDeletePopover = false
+                } onCancel: {
+                    showingDeletePopover = false
                 }
             }
         }

@@ -158,7 +158,6 @@ struct TabPill: View {
     @Binding var renameTitle: String
     
     @State private var showingDeletePopover = false
-    @State private var pendingDeleteTab: TabItem?
     
     var onSelect: () -> Void
     var onRenameCommit: (UUID, String) -> Void
@@ -204,24 +203,19 @@ struct TabPill: View {
                         renamingTabId = tab.id
                     }
                     Button("Delete", role: .destructive) {
-                        pendingDeleteTab = tab
                         showingDeletePopover = true
                     }
                 }
                 .popover(isPresented: $showingDeletePopover, arrowEdge: .bottom) {
-                    if let tabToDelete = pendingDeleteTab {
-                        DeleteTabView(tab: tabToDelete) {
-                            let wasSelected = appState.selectedTabId == tabToDelete.id
-                            appState.deleteTab(id: tabToDelete.id)
-                            if wasSelected {
-                                appState.selectedTabId = appState.tabs.first?.id
-                            }
-                            showingDeletePopover = false
-                            pendingDeleteTab = nil
-                        } onCancel: {
-                            showingDeletePopover = false
-                            pendingDeleteTab = nil
+                    DeleteTabView(tab: tab) {
+                        let wasSelected = appState.selectedTabId == tab.id
+                        appState.deleteTab(id: tab.id)
+                        if wasSelected {
+                            appState.selectedTabId = appState.tabs.first?.id
                         }
+                        showingDeletePopover = false
+                    } onCancel: {
+                        showingDeletePopover = false
                     }
                 }
             }

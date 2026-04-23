@@ -48,7 +48,6 @@ struct SettingsContentView: View {
                             isDeleteProtected: $isDeleteProtected
                         )
                     }
-                    .onMove(perform: moveTabs)
                 }
                 .listStyle(.plain)
             }
@@ -247,7 +246,6 @@ struct SettingsView: View {
                             isDeleteProtected: $isDeleteProtected
                         )
                     }
-                    .onMove(perform: moveTabs)
                 }
                 .listStyle(.plain)
             }

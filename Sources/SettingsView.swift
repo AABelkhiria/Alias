@@ -73,6 +73,17 @@ struct SettingsContentView: View {
                     }
                 }
             }
+            
+            Divider()
+            
+            Button(action: { NSApplication.shared.terminate(nil) }) {
+                HStack {
+                    Image(systemName: "power")
+                    Text("Quit Alias")
+                }
+                .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
     }
@@ -259,9 +270,20 @@ struct SettingsView: View {
                     }
                 }
             }
+            
+            Divider()
+            
+            Button(action: { NSApplication.shared.terminate(nil) }) {
+                HStack {
+                    Image(systemName: "power")
+                    Text("Quit Alias")
+                }
+                .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
         }
         .padding()
-        .frame(width: 350, height: 300)
+        .frame(width: 350, height: 320)
     }
     
     @ViewBuilder

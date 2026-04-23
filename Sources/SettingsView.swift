@@ -12,6 +12,10 @@ struct SettingsContentView: View {
     @State private var deletePasswordError = false
     @State private var isDeleteProtected = false
     
+    @State private var draggingTabId: UUID?
+    @State private var dragOffset: CGSize = .zero
+    @State private var dropTargetIndex: Int?
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
@@ -39,17 +43,47 @@ struct SettingsContentView: View {
                     }
                 }
                 
-                List {
-                    ForEach(appState.tabs) { tab in
-                        TabSettingsRow(
-                            tab: tab,
-                            showingDeleteConfirm: $showingDeleteConfirm,
-                            deleteTabId: $deleteTabId,
-                            isDeleteProtected: $isDeleteProtected
-                        )
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
+                            TabSettingsRow(
+                                tab: tab,
+                                showingDeleteConfirm: $showingDeleteConfirm,
+                                deleteTabId: $deleteTabId,
+                                isDeleteProtected: $isDeleteProtected
+                            )
+                            .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
+                            .offset(draggingTabId == tab.id ? dragOffset : .zero)
+                            .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
+                            .animation(.default, value: draggingTabId)
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if draggingTabId == nil {
+                                            draggingTabId = tab.id
+                                        }
+                                        dragOffset = value.translation
+                                        updateDropTargetIndex(currentIndex: index, translation: value.translation)
+                                    }
+                                    .onEnded { _ in
+                                        if let targetIndex = dropTargetIndex, let dragId = draggingTabId {
+                                            handleDrop(tabId: dragId, at: targetIndex)
+                                        }
+                                        draggingTabId = nil
+                                        dragOffset = .zero
+                                        dropTargetIndex = nil
+                                    }
+                            )
+                            
+                            if let targetIdx = dropTargetIndex, targetIdx == index + 1 {
+                                Rectangle()
+                                    .fill(Color.accentColor.opacity(0.5))
+                                    .frame(height: 2)
+                                    .padding(.horizontal, 8)
+                            }
+                        }
                     }
                 }
-                .listStyle(.plain)
             }
         }
         .padding()
@@ -136,8 +170,30 @@ struct SettingsContentView: View {
         }
     }
     
-    private func moveTabs(from source: IndexSet, to destination: Int) {
-        appState.moveTab(from: source, to: destination)
+    private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
+        // Simple logic: move target index based on drag direction
+        let itemHeight: CGFloat = 44 // approximate row height
+        let offset = Int(translation.height / itemHeight)
+        
+        var newIndex = currentIndex + offset
+        newIndex = max(0, min(newIndex, appState.tabs.count - 1))
+        
+        if newIndex != dropTargetIndex {
+            dropTargetIndex = newIndex
+        }
+    }
+    
+    private func handleDrop(tabId: UUID, at targetIndex: Int) {
+        guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
+        
+        var newTarget = targetIndex
+        if newTarget > currentIndex {
+            newTarget -= 1
+        }
+        
+        if newTarget != currentIndex {
+            appState.moveTab(from: IndexSet(integer: currentIndex), to: newTarget)
+        }
     }
 }
 
@@ -169,6 +225,9 @@ struct TabSettingsRow: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+        .background(Color(NSColor.controlBackgroundColor))
     }
     
     private var iconName: String {
@@ -196,6 +255,10 @@ struct SettingsView: View {
     @State private var deletePasswordInput = ""
     @State private var deletePasswordError = false
     @State private var isDeleteProtected = false
+    
+    @State private var draggingTabId: UUID?
+    @State private var dragOffset: CGSize = .zero
+    @State private var dropTargetIndex: Int?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -237,17 +300,47 @@ struct SettingsView: View {
                     }
                 }
                 
-                List {
-                    ForEach(appState.tabs) { tab in
-                        TabSettingsRow(
-                            tab: tab,
-                            showingDeleteConfirm: $showingDeleteConfirm,
-                            deleteTabId: $deleteTabId,
-                            isDeleteProtected: $isDeleteProtected
-                        )
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
+                            TabSettingsRow(
+                                tab: tab,
+                                showingDeleteConfirm: $showingDeleteConfirm,
+                                deleteTabId: $deleteTabId,
+                                isDeleteProtected: $isDeleteProtected
+                            )
+                            .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
+                            .offset(draggingTabId == tab.id ? dragOffset : .zero)
+                            .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
+                            .animation(.default, value: draggingTabId)
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if draggingTabId == nil {
+                                            draggingTabId = tab.id
+                                        }
+                                        dragOffset = value.translation
+                                        updateDropTargetIndex(currentIndex: index, translation: value.translation)
+                                    }
+                                    .onEnded { _ in
+                                        if let targetIndex = dropTargetIndex, let dragId = draggingTabId {
+                                            handleDrop(tabId: dragId, at: targetIndex)
+                                        }
+                                        draggingTabId = nil
+                                        dragOffset = .zero
+                                        dropTargetIndex = nil
+                                    }
+                            )
+                            
+                            if let targetIdx = dropTargetIndex, targetIdx == index + 1 {
+                                Rectangle()
+                                    .fill(Color.accentColor.opacity(0.5))
+                                    .frame(height: 2)
+                                    .padding(.horizontal, 8)
+                            }
+                        }
                     }
                 }
-                .listStyle(.plain)
             }
         }
         .padding()
@@ -335,7 +428,28 @@ struct SettingsView: View {
         }
     }
     
-    private func moveTabs(from source: IndexSet, to destination: Int) {
-        appState.moveTab(from: source, to: destination)
+    private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
+        let itemHeight: CGFloat = 44
+        let offset = Int(translation.height / itemHeight)
+        
+        var newIndex = currentIndex + offset
+        newIndex = max(0, min(newIndex, appState.tabs.count - 1))
+        
+        if newIndex != dropTargetIndex {
+            dropTargetIndex = newIndex
+        }
+    }
+    
+    private func handleDrop(tabId: UUID, at targetIndex: Int) {
+        guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
+        
+        var newTarget = targetIndex
+        if newTarget > currentIndex {
+            newTarget -= 1
+        }
+        
+        if newTarget != currentIndex {
+            appState.moveTab(from: IndexSet(integer: currentIndex), to: newTarget)
+        }
     }
 }

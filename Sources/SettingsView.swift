@@ -176,7 +176,7 @@ struct SettingsContentView: View {
         let offset = Int(translation.height / itemHeight)
         
         var newIndex = currentIndex + offset
-        newIndex = max(0, min(newIndex, appState.tabs.count - 1))
+        newIndex = max(0, min(newIndex, appState.tabs.count))
         
         if newIndex != dropTargetIndex {
             dropTargetIndex = newIndex
@@ -186,13 +186,8 @@ struct SettingsContentView: View {
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
         
-        var newTarget = targetIndex
-        if newTarget > currentIndex {
-            newTarget -= 1
-        }
-        
-        if newTarget != currentIndex {
-            appState.moveTab(from: IndexSet(integer: currentIndex), to: newTarget)
+        if targetIndex != currentIndex {
+            appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }
     }
 }
@@ -433,7 +428,7 @@ struct SettingsView: View {
         let offset = Int(translation.height / itemHeight)
         
         var newIndex = currentIndex + offset
-        newIndex = max(0, min(newIndex, appState.tabs.count - 1))
+        newIndex = max(0, min(newIndex, appState.tabs.count))
         
         if newIndex != dropTargetIndex {
             dropTargetIndex = newIndex
@@ -443,13 +438,8 @@ struct SettingsView: View {
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
         
-        var newTarget = targetIndex
-        if newTarget > currentIndex {
-            newTarget -= 1
-        }
-        
-        if newTarget != currentIndex {
-            appState.moveTab(from: IndexSet(integer: currentIndex), to: newTarget)
+        if targetIndex != currentIndex {
+            appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }
     }
 }

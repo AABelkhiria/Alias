@@ -216,26 +216,20 @@ class AppState: ObservableObject {
     }
     
     func addTab(title: String, type: TabType) {
-        var newTab = TabItem(title: title, type: type)
-        if type == .command {
-            newTab.commands = [CommandItem(title: "New Command", command: "")]
-        }
+        let newTab = TabItem(title: title, type: type)
         tabs.append(newTab)
         selectedTabId = newTab.id
     }
     
-    func addCommand(to tabId: UUID) {
+    func addCommand(to tabId: UUID, title: String, command: String) {
         if let index = tabs.firstIndex(where: { $0.id == tabId }) {
-            tabs[index].commands.append(CommandItem(title: "New Command", command: ""))
+            tabs[index].commands.append(CommandItem(title: title, command: command))
         }
     }
     
     func deleteCommand(from tabId: UUID, commandId: UUID) {
         if let index = tabs.firstIndex(where: { $0.id == tabId }) {
             tabs[index].commands.removeAll { $0.id == commandId }
-            if tabs[index].commands.isEmpty {
-                tabs[index].commands.append(CommandItem(title: "New Command", command: ""))
-            }
         }
     }
     

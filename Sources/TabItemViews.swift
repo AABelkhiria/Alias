@@ -9,12 +9,15 @@ struct CommandTabView: View {
     @State private var editCommand: String = ""
     @State private var showCopiedId: UUID?
     
+    @State private var showingAddPopover = false
+    
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(tab.commands) { command in
                         CommandRowView(
+                            tabId: tab.id,
                             command: command,
                             isEditing: editingCommandId == command.id,
                             isCopied: showCopiedId == command.id,
@@ -30,9 +33,6 @@ struct CommandTabView: View {
                             },
                             onCancel: {
                                 editingCommandId = nil
-                            },
-                            onDelete: {
-                                appState.deleteCommand(from: tab.id, commandId: command.id)
                             }
                         )
                     }
@@ -45,7 +45,7 @@ struct CommandTabView: View {
             HStack {
                 Spacer()
                 Button(action: {
-                    appState.addCommand(to: tab.id)
+                    showingAddPopover = true
                 }) {
                     Image(systemName: "plus")
                     Text("Add Command")
@@ -53,6 +53,14 @@ struct CommandTabView: View {
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 .padding()
+                .popover(isPresented: $showingAddPopover, arrowEdge: .bottom) {
+                    AddCommandView { title, command in
+                        appState.addCommand(to: tab.id, title: title, command: command)
+                        showingAddPopover = false
+                    } onCancel: {
+                        showingAddPopover = false
+                    }
+                }
             }
             .background(Color(NSColor.controlBackgroundColor))
         }
@@ -79,7 +87,78 @@ struct CommandTabView: View {
     }
 }
 
+struct AddCommandView: View {
+    @State private var title: String = ""
+    @State private var command: String = ""
+    
+    var onAdd: (String, String) -> Void
+    var onCancel: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Add Command")
+                .font(.headline)
+            
+            TextField("Name", text: $title)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            TextField("Command", text: $command)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .font(.system(.body, design: .monospaced))
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button("Add") {
+                    onAdd(title, command)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(title.isEmpty || command.isEmpty)
+            }
+        }
+        .padding()
+        .frame(width: 250)
+    }
+}
+
+struct DeleteCommandView: View {
+    let title: String
+    var onDelete: () -> Void
+    var onCancel: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Delete \"\(title)\"?")
+                .font(.headline)
+            
+            Text("This action cannot be undone.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button("Delete", action: onDelete)
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+            }
+        }
+        .padding()
+        .frame(width: 200)
+    }
+}
+
 struct CommandRowView: View {
+    @EnvironmentObject var appState: AppState
+    let tabId: UUID
     let command: CommandItem
     let isEditing: Bool
     let isCopied: Bool
@@ -87,10 +166,10 @@ struct CommandRowView: View {
     let onEdit: () -> Void
     let onSave: () -> Void
     let onCancel: () -> Void
-    let onDelete: () -> Void
     
     @State private var editTitle: String = ""
     @State private var editCommand: String = ""
+    @State private var showingDeletePopover = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -104,13 +183,6 @@ struct CommandRowView: View {
                         .font(.system(.body, design: .monospaced))
                     
                     HStack {
-                        Button(action: onDelete) {
-                            Image(systemName: "trash")
-                            Text("Delete")
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.red)
-                        
                         Spacer()
                         
                         Button("Cancel", action: onCancel)
@@ -126,10 +198,7 @@ struct CommandRowView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(command.title)
                             .font(.headline)
-                        Text(command.command)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
+                        // Command text is now hidden
                     }
                     
                     Spacer()
@@ -146,6 +215,20 @@ struct CommandRowView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
+                    
+                    Button(action: { showingDeletePopover = true }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingDeletePopover, arrowEdge: .bottom) {
+                        DeleteCommandView(title: command.title) {
+                            appState.deleteCommand(from: tabId, commandId: command.id)
+                            showingDeletePopover = false
+                        } onCancel: {
+                            showingDeletePopover = false
+                        }
+                    }
                 }
                 .padding(12)
                 .background(Color(NSColor.controlBackgroundColor))

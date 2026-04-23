@@ -13,9 +13,6 @@ struct ContentView: View {
     @State private var tabPasswordError = false
     @State private var pendingTabId: UUID?
     
-    @State private var showingDeletePopover = false
-    @State private var pendingDeleteTab: TabItem?
-    
     // For renaming
     @State private var renamingTabId: UUID?
     @State private var renameTitle = ""
@@ -57,9 +54,7 @@ struct ContentView: View {
                             TabPill(tab: tab, 
                                     isActive: appState.selectedTabId == tab.id,
                                     renamingTabId: $renamingTabId,
-                                    renameTitle: $renameTitle,
-                                    showingDeletePopover: $showingDeletePopover,
-                                    pendingDeleteTab: $pendingDeleteTab) {
+                                    renameTitle: $renameTitle) {
                                 if let previousId = appState.selectedTabId, previousId != tab.id {
                                     let currentTab = appState.tabs.first { $0.id == previousId }
                                     let needsLock = currentTab?.tabPasswordHash != nil
@@ -161,8 +156,9 @@ struct TabPill: View {
     
     @Binding var renamingTabId: UUID?
     @Binding var renameTitle: String
-    @Binding var showingDeletePopover: Bool
-    @Binding var pendingDeleteTab: TabItem?
+    
+    @State private var showingDeletePopover = false
+    @State private var pendingDeleteTab: TabItem?
     
     var onSelect: () -> Void
     var onRenameCommit: (UUID, String) -> Void

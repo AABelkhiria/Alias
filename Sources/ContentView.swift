@@ -322,8 +322,6 @@ struct LockedTabView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Spacer()
-            
             Image(systemName: "lock.fill")
                 .font(.system(size: 40))
                 .foregroundColor(.secondary)
@@ -355,8 +353,6 @@ struct LockedTabView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(password.isEmpty)
             }
-            
-            Spacer()
         }
         .padding()
     }

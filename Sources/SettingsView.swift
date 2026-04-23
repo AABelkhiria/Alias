@@ -45,6 +45,13 @@ struct SettingsContentView: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
+                        if let targetIdx = dropTargetIndex, targetIdx == 0 {
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.5))
+                                .frame(height: 2)
+                                .padding(.horizontal, 8)
+                        }
+                        
                         ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
                             TabSettingsRow(
                                 tab: tab,
@@ -75,7 +82,7 @@ struct SettingsContentView: View {
                                     }
                             )
                             
-                            if let targetIdx = dropTargetIndex, targetIdx == index + 1 {
+                            if let targetIdx = dropTargetIndex, targetIdx == index {
                                 Rectangle()
                                     .fill(Color.accentColor.opacity(0.5))
                                     .frame(height: 2)
@@ -172,7 +179,7 @@ struct SettingsContentView: View {
     
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
         // Simple logic: move target index based on drag direction
-        let itemHeight: CGFloat = 44 // approximate row height
+        let itemHeight: CGFloat = 36 // approximate row height
         let offset = Int(translation.height / itemHeight)
         
         var newIndex = currentIndex + offset
@@ -222,7 +229,6 @@ struct TabSettingsRow: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 10)
-        .background(Color(NSColor.controlBackgroundColor))
     }
     
     private var iconName: String {
@@ -297,6 +303,13 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
+                        if let targetIdx = dropTargetIndex, targetIdx == 0 {
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.5))
+                                .frame(height: 2)
+                                .padding(.horizontal, 8)
+                        }
+                        
                         ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
                             TabSettingsRow(
                                 tab: tab,
@@ -327,7 +340,7 @@ struct SettingsView: View {
                                     }
                             )
                             
-                            if let targetIdx = dropTargetIndex, targetIdx == index + 1 {
+                            if let targetIdx = dropTargetIndex, targetIdx == index {
                                 Rectangle()
                                     .fill(Color.accentColor.opacity(0.5))
                                     .frame(height: 2)
@@ -424,7 +437,7 @@ struct SettingsView: View {
     }
     
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
-        let itemHeight: CGFloat = 44
+        let itemHeight: CGFloat = 36
         let offset = Int(translation.height / itemHeight)
         
         var newIndex = currentIndex + offset

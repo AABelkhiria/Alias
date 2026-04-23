@@ -43,7 +43,7 @@ struct SettingsContentView: View {
             }
         }
         .padding()
-        .sheet(isPresented: $showingAddTab) {
+        .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
             AddTabView { title, type, password in
                 appState.addTab(title: title, type: type)
                 if let lastTab = appState.tabs.last, let password = password {
@@ -242,7 +242,7 @@ struct SettingsView: View {
         }
         .padding()
         .frame(width: 350, height: 300)
-        .sheet(isPresented: $showingAddTab) {
+        .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
             AddTabView { title, type, password in
                 appState.addTab(title: title, type: type)
                 if let lastTab = appState.tabs.last, let password = password {

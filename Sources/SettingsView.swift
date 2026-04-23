@@ -15,9 +15,29 @@ struct SettingsContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Tabs")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text("Tabs")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingAddTab = true }) {
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
+                        AddTabView { title, type, password in
+                            appState.addTab(title: title, type: type)
+                            if let lastTab = appState.tabs.last, let password = password {
+                                appState.setTabPassword(id: lastTab.id, password: password)
+                            }
+                            newTabTitle = ""
+                            showingAddTab = false
+                        }
+                    }
+                }
                 
                 List {
                     ForEach(appState.tabs) { tab in
@@ -29,30 +49,11 @@ struct SettingsContentView: View {
                         )
                     }
                     .onMove(perform: moveTabs)
-                    
-                    Button(action: { showingAddTab = true }) {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("Add New Tab")
-                        }
-                        .foregroundColor(.accentColor)
-                    }
-                    .buttonStyle(.plain)
                 }
                 .listStyle(.plain)
             }
         }
         .padding()
-        .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
-            AddTabView { title, type, password in
-                appState.addTab(title: title, type: type)
-                if let lastTab = appState.tabs.last, let password = password {
-                    appState.setTabPassword(id: lastTab.id, password: password)
-                }
-                newTabTitle = ""
-                showingAddTab = false
-            }
-        }
         .sheet(isPresented: $showingDeleteConfirm) {
             VStack(spacing: 20) {
                 if isDeleteProtected {
@@ -213,9 +214,29 @@ struct SettingsView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Tabs")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text("Tabs")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingAddTab = true }) {
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
+                        AddTabView { title, type, password in
+                            appState.addTab(title: title, type: type)
+                            if let lastTab = appState.tabs.last, let password = password {
+                                appState.setTabPassword(id: lastTab.id, password: password)
+                            }
+                            newTabTitle = ""
+                            showingAddTab = false
+                        }
+                    }
+                }
                 
                 List {
                     ForEach(appState.tabs) { tab in
@@ -227,31 +248,12 @@ struct SettingsView: View {
                         )
                     }
                     .onMove(perform: moveTabs)
-                    
-                    Button(action: { showingAddTab = true }) {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("Add New Tab")
-                        }
-                        .foregroundColor(.accentColor)
-                    }
-                    .buttonStyle(.plain)
                 }
                 .listStyle(.plain)
             }
         }
         .padding()
         .frame(width: 350, height: 300)
-        .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
-            AddTabView { title, type, password in
-                appState.addTab(title: title, type: type)
-                if let lastTab = appState.tabs.last, let password = password {
-                    appState.setTabPassword(id: lastTab.id, password: password)
-                }
-                newTabTitle = ""
-                showingAddTab = false
-            }
-        }
         .sheet(isPresented: $showingDeleteConfirm) {
             VStack(spacing: 20) {
                 if isDeleteProtected {

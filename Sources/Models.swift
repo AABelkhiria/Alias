@@ -307,16 +307,9 @@ class AppState: ObservableObject {
     func moveTab(from source: IndexSet, to destination: Int) {
         var tabsArray = tabs
         let sourceIndex = source.first!
-        let isMovingUp = sourceIndex < destination
         
         let tab = tabsArray.remove(at: sourceIndex)
-        
-        var adjustedDestination = destination
-        if isMovingUp {
-            adjustedDestination -= 1
-        }
-        
-        tabsArray.insert(tab, at: min(adjustedDestination, tabsArray.count))
+        tabsArray.insert(tab, at: min(destination, tabsArray.count))
         tabs = tabsArray
     }
     

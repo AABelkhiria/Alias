@@ -45,12 +45,8 @@ struct SettingsContentView: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
-                        if let targetIdx = dropTargetIndex, targetIdx == 0 {
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(0.5))
-                                .frame(height: 2)
-                                .padding(.horizontal, 8)
-                        }
+                        // Top indicator
+                        dropIndicator(at: 0)
                         
                         ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
                             TabSettingsRow(
@@ -62,7 +58,7 @@ struct SettingsContentView: View {
                             .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
                             .offset(draggingTabId == tab.id ? dragOffset : .zero)
                             .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
-                            .animation(.default, value: draggingTabId)
+                            .animation(Animation.default, value: draggingTabId)
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
@@ -82,12 +78,8 @@ struct SettingsContentView: View {
                                     }
                             )
                             
-                            if let targetIdx = dropTargetIndex, targetIdx == index {
-                                Rectangle()
-                                    .fill(Color.accentColor.opacity(0.5))
-                                    .frame(height: 2)
-                                    .padding(.horizontal, 8)
-                            }
+                            // Bottom indicator for each row
+                            dropIndicator(at: index + 1)
                         }
                     }
                 }
@@ -177,13 +169,36 @@ struct SettingsContentView: View {
         }
     }
     
+    @ViewBuilder
+    private func dropIndicator(at lineIndex: Int) -> some View {
+        if let targetIdx = dropTargetIndex,
+           let dragId = draggingTabId,
+           let sourceIndex = appState.tabs.firstIndex(where: { $0.id == dragId }) {
+            
+            // Map the expected final array index to the correct visual line gap
+            let visualTargetLine = targetIdx > sourceIndex ? targetIdx + 1 : targetIdx
+            
+            // Only show if the line matches and it wouldn't drop exactly where it started
+            if visualTargetLine == lineIndex && targetIdx != sourceIndex {
+                Rectangle()
+                    .fill(Color.accentColor.opacity(0.5))
+                    .frame(height: 2)
+                    .padding(.horizontal, 8)
+            }
+        }
+    }
+    
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
-        // Simple logic: move target index based on drag direction
-        let itemHeight: CGFloat = 36 // approximate row height
-        let offset = Int(translation.height / itemHeight)
+        let itemHeight: CGFloat = 36 // row height
         
+        // Calculate the raw array index offset
+        let offset = Int(round(translation.height / itemHeight))
         var newIndex = currentIndex + offset
-        newIndex = max(0, min(newIndex, appState.tabs.count))
+        
+        // Target is directly representing the exact array index it will end up at.
+        // It should be safely clamped to prevent inserting out of bounds.
+        let maxIndex = max(0, appState.tabs.count - 1)
+        newIndex = max(0, min(newIndex, maxIndex))
         
         if newIndex != dropTargetIndex {
             dropTargetIndex = newIndex
@@ -193,6 +208,7 @@ struct SettingsContentView: View {
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
         
+        // Prevent no-op triggers
         if targetIndex != currentIndex {
             appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }
@@ -303,12 +319,8 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(spacing: 0) {
-                        if let targetIdx = dropTargetIndex, targetIdx == 0 {
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(0.5))
-                                .frame(height: 2)
-                                .padding(.horizontal, 8)
-                        }
+                        // Top indicator
+                        dropIndicator(at: 0)
                         
                         ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
                             TabSettingsRow(
@@ -320,7 +332,7 @@ struct SettingsView: View {
                             .opacity(draggingTabId == tab.id ? 0.5 : 1.0)
                             .offset(draggingTabId == tab.id ? dragOffset : .zero)
                             .scaleEffect(draggingTabId == tab.id ? 1.02 : 1.0)
-                            .animation(.default, value: draggingTabId)
+                            .animation(Animation.default, value: draggingTabId)
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
@@ -340,12 +352,8 @@ struct SettingsView: View {
                                     }
                             )
                             
-                            if let targetIdx = dropTargetIndex, targetIdx == index {
-                                Rectangle()
-                                    .fill(Color.accentColor.opacity(0.5))
-                                    .frame(height: 2)
-                                    .padding(.horizontal, 8)
-                            }
+                            // Bottom indicator for each row
+                            dropIndicator(at: index + 1)
                         }
                     }
                 }
@@ -436,12 +444,34 @@ struct SettingsView: View {
         }
     }
     
+    @ViewBuilder
+    private func dropIndicator(at lineIndex: Int) -> some View {
+        if let targetIdx = dropTargetIndex,
+           let dragId = draggingTabId,
+           let sourceIndex = appState.tabs.firstIndex(where: { $0.id == dragId }) {
+            
+            // Map the expected final array index to the correct visual line gap
+            let visualTargetLine = targetIdx > sourceIndex ? targetIdx + 1 : targetIdx
+            
+            if visualTargetLine == lineIndex && targetIdx != sourceIndex {
+                Rectangle()
+                    .fill(Color.accentColor.opacity(0.5))
+                    .frame(height: 2)
+                    .padding(.horizontal, 8)
+            }
+        }
+    }
+    
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
-        let itemHeight: CGFloat = 36
-        let offset = Int(translation.height / itemHeight)
+        let itemHeight: CGFloat = 36 // row height
         
+        // Calculate the raw array index offset
+        let offset = Int(round(translation.height / itemHeight))
         var newIndex = currentIndex + offset
-        newIndex = max(0, min(newIndex, appState.tabs.count))
+        
+        // Target is directly representing the exact array index it will end up at.
+        let maxIndex = max(0, appState.tabs.count - 1)
+        newIndex = max(0, min(newIndex, maxIndex))
         
         if newIndex != dropTargetIndex {
             dropTargetIndex = newIndex
@@ -451,6 +481,7 @@ struct SettingsView: View {
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
         
+        // Prevent no-op triggers
         if targetIndex != currentIndex {
             appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }

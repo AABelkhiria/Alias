@@ -7,6 +7,7 @@ struct CommandTabView: View {
     @State private var editingCommandId: UUID?
     @State private var editTitle: String = ""
     @State private var editCommand: String = ""
+    @State private var editRunInTerminal: Bool = false
     @State private var showCopiedId: UUID?
     
     @State private var showingAddPopover = false
@@ -25,10 +26,11 @@ struct CommandTabView: View {
                             onEdit: {
                                 editTitle = command.title
                                 editCommand = command.command
+                                editRunInTerminal = command.runInTerminal
                                 editingCommandId = command.id
                             },
                             onSave: {
-                                appState.updateCommand(tabId: tab.id, commandId: command.id, title: editTitle, command: editCommand)
+                                appState.updateCommand(tabId: tab.id, commandId: command.id, title: editTitle, command: editCommand, runInTerminal: editRunInTerminal)
                                 editingCommandId = nil
                             },
                             onCancel: {
@@ -54,8 +56,8 @@ struct CommandTabView: View {
                 .foregroundColor(.accentColor)
                 .padding()
                 .popover(isPresented: $showingAddPopover, arrowEdge: .bottom) {
-                    AddCommandView { title, command in
-                        appState.addCommand(to: tab.id, title: title, command: command)
+                    AddCommandView { title, command, runInTerminal in
+                        appState.addCommand(to: tab.id, title: title, command: command, runInTerminal: runInTerminal)
                         showingAddPopover = false
                     } onCancel: {
                         showingAddPopover = false
@@ -90,8 +92,9 @@ struct CommandTabView: View {
 struct AddCommandView: View {
     @State private var title: String = ""
     @State private var command: String = ""
+    @State private var runInTerminal: Bool = false
     
-    var onAdd: (String, String) -> Void
+    var onAdd: (String, String, Bool) -> Void
     var onCancel: () -> Void
     
     var body: some View {
@@ -106,6 +109,9 @@ struct AddCommandView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .font(.system(.body, design: .monospaced))
             
+            Toggle("Run in Terminal", isOn: $runInTerminal)
+                .toggleStyle(.checkbox)
+            
             HStack {
                 Button("Cancel", action: onCancel)
                     .buttonStyle(.plain)
@@ -114,7 +120,7 @@ struct AddCommandView: View {
                 Spacer()
                 
                 Button("Add") {
-                    onAdd(title, command)
+                    onAdd(title, command, runInTerminal)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(title.isEmpty || command.isEmpty)
@@ -169,7 +175,9 @@ struct CommandRowView: View {
     
     @State private var editTitle: String = ""
     @State private var editCommand: String = ""
+    @State private var editRunInTerminal: Bool = false
     @State private var showingDeletePopover = false
+    @State private var showRunningFeedback = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -182,12 +190,33 @@ struct CommandRowView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .font(.system(.body, design: .monospaced))
                     
+                    Toggle("Run in Terminal", isOn: $editRunInTerminal)
+                        .toggleStyle(.checkbox)
+                    
                     HStack {
+                        Button(action: { showingDeletePopover = true }) {
+                            Image(systemName: "trash")
+                            Text("Delete")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.red)
+                        .popover(isPresented: $showingDeletePopover, arrowEdge: .bottom) {
+                            DeleteCommandView(title: command.title) {
+                                appState.deleteCommand(from: tabId, commandId: command.id)
+                                showingDeletePopover = false
+                            } onCancel: {
+                                showingDeletePopover = false
+                            }
+                        }
+
                         Spacer()
-                        
+
                         Button("Cancel", action: onCancel)
-                        Button("Save", action: onSave)
-                            .buttonStyle(.borderedProminent)
+                        Button("Save", action: {
+                            appState.updateCommand(tabId: tabId, commandId: command.id, title: editTitle, command: editCommand, runInTerminal: editRunInTerminal)
+                            onSave()
+                        })
+                        .buttonStyle(.borderedProminent)
                     }
                 }
                 .padding(8)
@@ -198,9 +227,27 @@ struct CommandRowView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(command.title)
                             .font(.headline)
+                        if command.runInTerminal {
+                            Text("Runs in Terminal")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     Spacer()
+                    
+                    Button(action: {
+                        appState.runCommand(command.command, inTerminal: command.runInTerminal)
+                        withAnimation { showRunningFeedback = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            withAnimation { showRunningFeedback = false }
+                        }
+                    }) {
+                        Image(systemName: showRunningFeedback ? "play.circle.fill" : "play.fill")
+                            .foregroundColor(showRunningFeedback ? .green : .accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(command.command.isEmpty)
                     
                     Button(action: onCopy) {
                         Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
@@ -208,26 +255,6 @@ struct CommandRowView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(command.command.isEmpty)
-                    
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
-                    
-                    Button(action: { showingDeletePopover = true }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showingDeletePopover, arrowEdge: .bottom) {
-                        DeleteCommandView(title: command.title) {
-                            appState.deleteCommand(from: tabId, commandId: command.id)
-                            showingDeletePopover = false
-                        } onCancel: {
-                            showingDeletePopover = false
-                        }
-                    }
                 }
                 .padding(12)
                 .background(Color(NSColor.controlBackgroundColor))
@@ -236,11 +263,17 @@ struct CommandRowView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                 )
+                .contextMenu {
+                    Button("Edit") {
+                        onEdit()
+                    }
+                }
             }
         }
         .onAppear {
             editTitle = command.title
             editCommand = command.command
+            editRunInTerminal = command.runInTerminal
         }
     }
 }

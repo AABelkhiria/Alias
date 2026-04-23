@@ -45,6 +45,8 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Alias needs permission to run commands in your Terminal.</string>
 </dict>
 </plist>
 EOF

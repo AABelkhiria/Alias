@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CryptoKit
+import AppKit
 
 enum TabType: String, Codable {
     case command
@@ -12,11 +13,13 @@ struct CommandItem: Identifiable, Codable, Equatable {
     var id: UUID
     var title: String
     var command: String
+    var runInTerminal: Bool
     
-    init(id: UUID = UUID(), title: String, command: String) {
+    init(id: UUID = UUID(), title: String, command: String, runInTerminal: Bool = false) {
         self.id = id
         self.title = title
         self.command = command
+        self.runInTerminal = runInTerminal
     }
 }
 
@@ -261,9 +264,9 @@ class AppState: ObservableObject {
         selectedTabId = newTab.id
     }
     
-    func addCommand(to tabId: UUID, title: String, command: String) {
+    func addCommand(to tabId: UUID, title: String, command: String, runInTerminal: Bool = false) {
         if let index = tabs.firstIndex(where: { $0.id == tabId }) {
-            tabs[index].commands.append(CommandItem(title: title, command: command))
+            tabs[index].commands.append(CommandItem(title: title, command: command, runInTerminal: runInTerminal))
         }
     }
     
@@ -273,11 +276,12 @@ class AppState: ObservableObject {
         }
     }
     
-    func updateCommand(tabId: UUID, commandId: UUID, title: String, command: String) {
+    func updateCommand(tabId: UUID, commandId: UUID, title: String, command: String, runInTerminal: Bool) {
         if let tabIndex = tabs.firstIndex(where: { $0.id == tabId }),
            let cmdIndex = tabs[tabIndex].commands.firstIndex(where: { $0.id == commandId }) {
             tabs[tabIndex].commands[cmdIndex].title = title
             tabs[tabIndex].commands[cmdIndex].command = command
+            tabs[tabIndex].commands[cmdIndex].runInTerminal = runInTerminal
         }
     }
     
@@ -357,5 +361,47 @@ class AppState: ObservableObject {
          if let index = tabs.firstIndex(where: { $0.id == id }) {
              tabs[index].content = newContent
          }
+    }
+    
+    func runCommand(_ command: String, inTerminal: Bool = false) {
+        print("Running command: \(command), inTerminal: \(inTerminal)")
+        if inTerminal {
+            let escapedCommand = command.replacingOccurrences(of: "\\", with: "\\\\")
+                                       .replacingOccurrences(of: "\"", with: "\\\"")
+            let script = """
+            tell application "Terminal"
+                activate
+                do script "\(escapedCommand)"
+            end tell
+            """
+            
+            if let appleScript = NSAppleScript(source: script) {
+                var error: NSDictionary?
+                appleScript.executeAndReturnError(&error)
+                if let err = error {
+                    print("AppleScript Error: \(err)")
+                } else {
+                    print("AppleScript executed successfully")
+                }
+            } else {
+                print("Failed to create AppleScript from source")
+            }
+        } else {
+            let task = Process()
+            let pipe = Pipe()
+            
+            task.standardOutput = pipe
+            task.standardError = pipe
+            task.arguments = ["-c", command]
+            task.launchPath = "/bin/zsh"
+            task.standardInput = nil
+            
+            do {
+                try task.run()
+                print("Background command started: \(command)")
+            } catch {
+                print("Failed to run background command: \(error)")
+            }
+        }
     }
 }

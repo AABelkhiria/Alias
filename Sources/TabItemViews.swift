@@ -264,6 +264,13 @@ struct CommandRowView: View {
                         .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
                 )
                 .contextMenu {
+                    Button("Run") {
+                        appState.runCommand(command.command, inTerminal: false)
+                    }
+                    Button("Run in Terminal") {
+                        appState.runCommand(command.command, inTerminal: true)
+                    }
+                    Divider()
                     Button("Edit") {
                         onEdit()
                     }

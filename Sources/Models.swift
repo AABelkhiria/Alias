@@ -364,7 +364,6 @@ class AppState: ObservableObject {
     }
     
     func runCommand(_ command: String, inTerminal: Bool = false) {
-        print("Running command: \(command), inTerminal: \(inTerminal)")
         if inTerminal {
             let escapedCommand = command.replacingOccurrences(of: "\\", with: "\\\\")
                                        .replacingOccurrences(of: "\"", with: "\\\"")
@@ -398,7 +397,6 @@ class AppState: ObservableObject {
             
             do {
                 try task.run()
-                print("Background command started: \(command)")
             } catch {
                 print("Failed to run background command: \(error)")
             }

@@ -92,6 +92,7 @@ struct SettingsContentView: View {
             .buttonStyle(.plain)
         }
         .padding()
+        .background(.ultraThinMaterial)
     }
     
     @ViewBuilder
@@ -416,8 +417,9 @@ struct SettingsView: View {
             .buttonStyle(.plain)
         }
         .padding()
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(.ultraThinMaterial)
         .frame(width: 350, height: 400)
+        .opacity(0.98)
     }
     
     @ViewBuilder
@@ -463,4 +465,3 @@ struct SettingsView: View {
         }
     }
 }
-

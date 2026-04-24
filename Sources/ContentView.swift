@@ -39,12 +39,13 @@ struct ContentView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(.ultraThinMaterial)
             
             Divider()
             
             if showingSettings {
                 SettingsContentView()
+                    .background(.ultraThinMaterial)
             } else {
                 // Tab Bar Area
                 HStack(spacing: 8) {
@@ -81,7 +82,7 @@ struct ContentView: View {
                 }) {
                     Image(systemName: "plus")
                         .padding(8)
-                        .background(Color(NSColor.controlBackgroundColor))
+                        .background(.ultraThinMaterial)
                         .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
@@ -97,7 +98,7 @@ struct ContentView: View {
                 }
             }
             .padding(.vertical, 8)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(.ultraThinMaterial)
             
             Divider()
             
@@ -136,15 +137,16 @@ struct ContentView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(.ultraThinMaterial)
             } else {
                 Text("No tab selected or tabs list is empty.")
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .background(.ultraThinMaterial)
             }
             }
         }
+        .opacity(0.98)
     }
 }
 

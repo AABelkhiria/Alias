@@ -87,6 +87,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 10)
+                .keyboardShortcut("n", modifiers: .command)
                 .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
                     AddTabView { title, type, password in
                         appState.addTab(title: title, type: type)

@@ -9,15 +9,32 @@ struct SettingsContentView: View {
     @State private var draggingTabId: UUID?
     @State private var dragOffset: CGSize = .zero
     @State private var dropTargetIndex: Int?
+    @State private var showingInfoPopover = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Tabs Section
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Tabs")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Text("Tabs")
+                        Button(action: { showingInfoPopover = true }) {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showingInfoPopover, arrowEdge: .top) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Shortcuts")
+                                    .font(.headline)
+                                Text("⌘ N : New Tab")
+                            }
+                            .padding()
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
                     
                     Spacer()
                     
@@ -26,6 +43,7 @@ struct SettingsContentView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    .keyboardShortcut("n", modifiers: .command)
                     .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
                         AddTabView { title, type, password in
                             appState.addTab(title: title, type: type)
@@ -337,6 +355,7 @@ struct SettingsView: View {
     @State private var draggingTabId: UUID?
     @State private var dragOffset: CGSize = .zero
     @State private var dropTargetIndex: Int?
+    @State private var showingInfoPopover = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -358,9 +377,25 @@ struct SettingsView: View {
                     // Tabs Section
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Tabs")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 4) {
+                                Text("Tabs")
+                                Button(action: { showingInfoPopover = true }) {
+                                    Image(systemName: "info.circle")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .popover(isPresented: $showingInfoPopover, arrowEdge: .top) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Shortcuts")
+                                            .font(.headline)
+                                        Text("⌘ N : New Tab")
+                                    }
+                                    .padding()
+                                }
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                             
                             Spacer()
                             
@@ -369,6 +404,7 @@ struct SettingsView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
+                            .keyboardShortcut("n", modifiers: .command)
                             .popover(isPresented: $showingAddTab, arrowEdge: .bottom) {
                                 AddTabView { title, type, password in
                                     appState.addTab(title: title, type: type)

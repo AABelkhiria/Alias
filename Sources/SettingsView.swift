@@ -144,13 +144,31 @@ struct SettingsContentView: View {
 struct WindowSizeSettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var showingEditPopover = false
+    @State private var showingInfoPopover = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Window Size")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text("Window Size")
+                    Button(action: { showingInfoPopover = true }) {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingInfoPopover, arrowEdge: .top) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Shortcuts")
+                                .font(.headline)
+                            Text("⌘ + : Increase size (+50)")
+                            Text("⌘ - : Decrease size (-50)")
+                        }
+                        .padding()
+                    }
+                }
+                .font(.subheadline)
+                .foregroundColor(.secondary)
                 
                 Spacer()
                 

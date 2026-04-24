@@ -147,6 +147,15 @@ struct ContentView: View {
             }
         }
         .opacity(0.98)
+        .background(
+            Group {
+                Button("") { appState.adjustWindowSize(delta: 50) }
+                    .keyboardShortcut("+", modifiers: .command)
+                Button("") { appState.adjustWindowSize(delta: -50) }
+                    .keyboardShortcut("-", modifiers: .command)
+            }
+            .opacity(0)
+        )
     }
 }
 

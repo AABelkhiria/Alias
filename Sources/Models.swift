@@ -258,6 +258,13 @@ class AppState: ObservableObject {
         windowHeight = AppState.defaultHeight
     }
     
+    func adjustWindowSize(delta: CGFloat) {
+        let newWidth = max(AppState.minWidth, min(windowWidth + delta, AppState.maxWidth))
+        let newHeight = max(AppState.minHeight, min(windowHeight + delta, AppState.maxHeight))
+        windowWidth = newWidth
+        windowHeight = newHeight
+    }
+    
     func addTab(title: String, type: TabType) {
         let newTab = TabItem(title: title, type: type)
         tabs.append(newTab)

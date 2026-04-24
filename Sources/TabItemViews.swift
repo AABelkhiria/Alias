@@ -55,6 +55,7 @@ struct CommandTabView: View {
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 .padding()
+                .keyboardShortcut("n", modifiers: [.command, .shift])
                 .popover(isPresented: $showingAddPopover, arrowEdge: .bottom) {
                     AddCommandView { title, command, runInTerminal in
                         appState.addCommand(to: tab.id, title: title, command: command, runInTerminal: runInTerminal)
@@ -312,7 +313,7 @@ struct PasswordTabView: View {
     @EnvironmentObject var appState: AppState
     let tab: TabItem
     
-    @State private var showingAddForm = false
+    @State private var showingAddPopover = false
     @State private var newName = ""
     @State private var newSecret = ""
     @State private var newEncryptionPassword = ""
@@ -332,30 +333,6 @@ struct PasswordTabView: View {
                             }
                         )
                     }
-                    
-                    if showingAddForm {
-                        AddPasswordForm(
-                            name: $newName,
-                            secret: $newSecret,
-                            encryptionPassword: $newEncryptionPassword,
-                            onSave: {
-                                if !newName.isEmpty && !newSecret.isEmpty {
-                                    let encPassword = newEncryptionPassword.isEmpty ? nil : newEncryptionPassword
-                                    appState.addPasswordItem(to: tab.id, name: newName, secret: newSecret, encryptionPassword: encPassword)
-                                    newName = ""
-                                    newSecret = ""
-                                    newEncryptionPassword = ""
-                                    showingAddForm = false
-                                }
-                            },
-                            onCancel: {
-                                newName = ""
-                                newSecret = ""
-                                newEncryptionPassword = ""
-                                showingAddForm = false
-                            }
-                        )
-                    }
                 }
                 .padding()
             }
@@ -364,18 +341,42 @@ struct PasswordTabView: View {
             
             HStack {
                 Spacer()
-                Button(action: { showingAddForm = true }) {
+                Button(action: { showingAddPopover = true }) {
                     Image(systemName: "plus")
                     Text("Add Password")
                 }
                 .buttonStyle(.plain)
                 .foregroundColor(.accentColor)
                 .padding()
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .popover(isPresented: $showingAddPopover, arrowEdge: .bottom) {
+                    AddPasswordForm(
+                        name: $newName,
+                        secret: $newSecret,
+                        encryptionPassword: $newEncryptionPassword,
+                        onSave: {
+                            if !newName.isEmpty && !newSecret.isEmpty {
+                                let encPassword = newEncryptionPassword.isEmpty ? nil : newEncryptionPassword
+                                appState.addPasswordItem(to: tab.id, name: newName, secret: newSecret, encryptionPassword: encPassword)
+                                newName = ""
+                                newSecret = ""
+                                newEncryptionPassword = ""
+                                showingAddPopover = false
+                            }
+                        },
+                        onCancel: {
+                            newName = ""
+                            newSecret = ""
+                            newEncryptionPassword = ""
+                            showingAddPopover = false
+                        }
+                    )
+                }
             }
-            .background(Color(NSColor.controlBackgroundColor))
+            // .background(Color(NSColor.controlBackgroundColor))
         }
         .onChange(of: tab.id) { _ in
-            showingAddForm = false
+            showingAddPopover = false
         }
     }
 }
@@ -735,12 +736,7 @@ struct AddPasswordForm: View {
                     .disabled(name.isEmpty || secret.isEmpty)
             }
         }
-        .padding(12)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.accentColor.opacity(0.5), lineWidth: 2)
-        )
+        .padding()
+        .frame(width: 250)
     }
 }

@@ -29,8 +29,16 @@ struct SettingsContentView: View {
                                 Text("Shortcuts")
                                     .font(.headline)
                                 Text("⌘ N : New Tab")
+                                
+                                Divider()
+                                
+                                Text("Drag and drop tabs in the list below to reorder them.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding()
+                            .frame(width: 200)
                         }
                     }
                     .font(.subheadline)
@@ -390,8 +398,16 @@ struct SettingsView: View {
                                         Text("Shortcuts")
                                             .font(.headline)
                                         Text("⌘ N : New Tab")
+                                        
+                                        Divider()
+                                        
+                                        Text("Drag and drop tabs in the list below to reorder them.")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                     .padding()
+                                    .frame(width: 200)
                                 }
                             }
                             .font(.subheadline)

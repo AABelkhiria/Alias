@@ -148,6 +148,7 @@ class AppState: ObservableObject {
     
     @Published var selectedTabId: UUID?
     @Published var unlockedTabIds: Set<UUID> = []
+    @Published var showingSettings: Bool = false
     
     @Published var windowWidth: CGFloat = 400 {
         didSet { saveWindowSize() }
@@ -169,6 +170,16 @@ class AppState: ObservableObject {
     init() {
         load()
         loadWindowSize()
+        setupFocusObserver()
+    }
+    
+    private func setupFocusObserver() {
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            // Use a slight delay to ensure the UI is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self?.showingSettings = false
+            }
+        }
     }
     
     func isTabUnlocked(id: UUID) -> Bool {

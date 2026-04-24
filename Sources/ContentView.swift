@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showingSettings = false
     @State private var showingAddTab = false
     @State private var newTabTitle = ""
     @State private var newTabType: TabType = .command
@@ -31,7 +30,7 @@ struct ContentView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary.opacity(0.5))
                 
-                Button(action: { showingSettings.toggle() }) {
+                Button(action: { appState.showingSettings.toggle() }) {
                     Image(systemName: "gearshape")
                         .foregroundColor(.secondary)
                 }
@@ -43,7 +42,7 @@ struct ContentView: View {
             
             Divider()
             
-            if showingSettings {
+            if appState.showingSettings {
                 SettingsContentView()
                     .background(.ultraThinMaterial)
             } else {

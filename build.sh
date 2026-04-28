@@ -2,6 +2,7 @@
 set -e
 
 APP_NAME="Alias"
+VERSION=$(cat VERSION | xargs)
 APP_BUNDLE="${APP_NAME}.app"
 MACOS_DIR="${APP_BUNDLE}/Contents/MacOS"
 CONTENTS_DIR="${APP_BUNDLE}/Contents"
@@ -36,7 +37,7 @@ cat <<EOF > "${CONTENTS_DIR}/Info.plist"
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>${VERSION}</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleInfoDictionaryVersion</key>

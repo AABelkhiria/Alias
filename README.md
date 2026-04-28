@@ -62,6 +62,16 @@ The app will appear in your menu bar with a terminal icon.
 - macOS 13.0 (Ventura) or later
 - Swift 5.9 or later (for building from source)
 
+## Versioning
+
+This project uses a `VERSION` file in the root directory to manage the application version. 
+
+To bump the version:
+1. Update the version string in the `VERSION` file (e.g., `0.1.1`).
+2. When your PR is merged to `main`, a new GitHub Release will be automatically created with the built binary.
+
+The CI workflow will fail if a PR does not increment the version in the `VERSION` file.
+
 ## Contributing
 
 Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.

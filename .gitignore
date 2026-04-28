@@ -6,6 +6,8 @@
 build/
 .build/
 *.app
+*.dmg
+dmg_root/
 *.dSYM
 
 # Xcode

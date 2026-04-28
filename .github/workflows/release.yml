@@ -24,9 +24,6 @@ jobs:
       - name: Build App
         run: make build
 
-      - name: Create Zip
-        run: zip -r Alias.zip Alias.app
-
       - name: Create Tag
         run: |
           git tag v${{ steps.get_version.outputs.VERSION }}
@@ -39,7 +36,7 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: Release v${{ steps.get_version.outputs.VERSION }}
-          files: Alias.zip
+          files: Alias.app
           draft: false
           prerelease: false
         env:

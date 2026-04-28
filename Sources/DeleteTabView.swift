@@ -44,6 +44,7 @@ struct DeleteTabView: View {
                     .buttonStyle(.bordered)
                     .tint(.red)
                     .disabled(!canDelete)
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding()

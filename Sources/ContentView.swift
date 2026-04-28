@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var renamingTabId: UUID?
     @State private var renameTitle = ""
     
+    @State private var showingDeleteConfirmation = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // Top Bar
@@ -126,6 +128,14 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.ultraThinMaterial)
+                .popover(isPresented: $showingDeleteConfirmation) {
+                    DeleteTabView(tab: selectedTab) {
+                        appState.deleteTab(id: selectedTab.id)
+                        showingDeleteConfirmation = false
+                    } onCancel: {
+                        showingDeleteConfirmation = false
+                    }
+                }
             } else {
                 Text("No tab selected or tabs list is empty.")
                     .foregroundColor(.secondary)
@@ -144,6 +154,9 @@ struct ContentView: View {
                 
                 Button("") { appState.showingSettings.toggle() }
                     .keyboardShortcut("0", modifiers: .command)
+                
+                Button("") { showingDeleteConfirmation = true }
+                    .keyboardShortcut(.delete, modifiers: .command)
                 
                 // Tab shortcuts Cmd+1 to Cmd+9
                 ForEach(0..<min(appState.tabs.count, 9), id: \.self) { index in

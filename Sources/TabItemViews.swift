@@ -155,6 +155,7 @@ struct DeleteCommandView: View {
                 Button("Delete", action: onDelete)
                     .buttonStyle(.bordered)
                     .tint(.red)
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding()
@@ -593,6 +594,7 @@ struct PasswordRowView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(passwordInput.isEmpty)
+                    .keyboardShortcut(.defaultAction)
                     
                     Button("Cancel") {
                         passwordInput = ""
@@ -625,6 +627,7 @@ struct PasswordRowView: View {
                         deleteFn()
                     }
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
                 }
                 .frame(maxWidth: .infinity)
             }

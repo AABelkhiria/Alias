@@ -158,6 +158,9 @@ struct ContentView: View {
                 Button("") { showingDeleteConfirmation = true }
                     .keyboardShortcut(.delete, modifiers: .command)
                 
+                Button("") { appState.quitApp() }
+                    .keyboardShortcut("q", modifiers: .command)
+                
                 // Tab shortcuts Cmd+1 to Cmd+9
                 ForEach(0..<min(appState.tabs.count, 9), id: \.self) { index in
                     Button("") {

@@ -21,6 +21,7 @@ A macOS menu bar app for storing and managing command snippets, notes, and secre
 - `⌘ 1-9`: Switch to tab 1-9
 - `⌘ 0`: Toggle Settings
 - `⌘ ⌫`: Delete current tab
+- `⌘ Q Q`: Quit App
 - `⌘ N`: Create a new tab
 - `⌘ ⇧ N`: Add a new item (Command or Password) to the current tab
 

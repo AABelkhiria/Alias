@@ -163,6 +163,8 @@ class AppState: ObservableObject {
         didSet { saveWindowSize() }
     }
     
+    private var lastQuitAttempt: Date?
+    
     static let defaultWidth: CGFloat = 400
     static let defaultHeight: CGFloat = 350
     static let minWidth: CGFloat = 300
@@ -398,6 +400,15 @@ class AppState: ObservableObject {
          if let index = tabs.firstIndex(where: { $0.id == id }) {
              tabs[index].content = newContent
          }
+    }
+    
+    func quitApp() {
+        let now = Date()
+        if let last = lastQuitAttempt, now.timeIntervalSince(last) < 0.5 {
+            NSApplication.shared.terminate(nil)
+        } else {
+            lastQuitAttempt = now
+        }
     }
     
     func runCommand(_ command: String, inTerminal: Bool = false) {

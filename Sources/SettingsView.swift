@@ -26,12 +26,11 @@ struct SettingsContentView: View {
                         .buttonStyle(.plain)
                         .popover(isPresented: $showingInfoPopover, arrowEdge: .top) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Shortcuts")
+                                Text("Tab Shortcuts")
                                     .font(.headline)
                                 Text("⌘ 1-9 : Switch Tab")
-                                Text("⌘ 0   : Toggle Settings")
                                 Text("⌘ ⌫   : Delete Tab")
-                                Text("⌘ N   : New Tab")
+                                Text("⌘ N     : New Tab")
                                 
                                 Divider()
                                 
@@ -111,14 +110,7 @@ struct SettingsContentView: View {
             
             Divider()
             
-            Button(action: { NSApplication.shared.terminate(nil) }) {
-                HStack {
-                    Image(systemName: "power")
-                    Text("Quit Alias")
-                }
-                .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
+            QuitButtonView()
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -133,7 +125,6 @@ struct SettingsContentView: View {
             // Map the expected final array index to the correct visual line gap
             let visualTargetLine = targetIdx > sourceIndex ? targetIdx + 1 : targetIdx
             
-            // Only show if the line matches and it wouldn't drop exactly where it started
             if visualTargetLine == lineIndex && targetIdx != sourceIndex {
                 Rectangle()
                     .fill(Color.accentColor.opacity(0.5))
@@ -145,13 +136,8 @@ struct SettingsContentView: View {
     
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
         let itemHeight: CGFloat = 36 // row height
-        
-        // Calculate the raw array index offset
         let offset = Int(round(translation.height / itemHeight))
         var newIndex = currentIndex + offset
-        
-        // Target is directly representing the exact array index it will end up at.
-        // It should be safely clamped to prevent inserting out of bounds.
         let maxIndex = max(0, appState.tabs.count - 1)
         newIndex = max(0, min(newIndex, maxIndex))
         
@@ -162,10 +148,42 @@ struct SettingsContentView: View {
     
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
-        
-        // Prevent no-op triggers
         if targetIndex != currentIndex {
             appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
+        }
+    }
+}
+
+struct QuitButtonView: View {
+    @State private var showingGeneralInfo = false
+    
+    var body: some View {
+        HStack {
+            Button(action: { NSApplication.shared.terminate(nil) }) {
+                HStack {
+                    Image(systemName: "power")
+                    Text("Quit Alias")
+                }
+                .foregroundColor(.red)
+            }
+            .buttonStyle(.plain)
+            
+            Spacer()
+            
+            Button(action: { showingGeneralInfo = true }) {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showingGeneralInfo, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("General Shortcuts")
+                        .font(.headline)
+                    Text("⌘ 0   : Toggle Settings")
+                    Text("⌘ Q Q : Quit App")
+                }
+                .padding()
+            }
         }
     }
 }
@@ -198,52 +216,46 @@ struct WindowSizeSettingsView: View {
                 }
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-                
+
                 Spacer()
                 
-                HStack(spacing: 12) {
-                    Button(action: { appState.resetWindowSize() }) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                HStack(spacing: 20) {
+                    Label {
+                        Text("\(Int(appState.windowWidth))")
+                    } icon: {
+                        Text("W:").fontWeight(.semibold).foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .help("Reset to default size")
                     
-                    Button(action: { showingEditPopover = true }) {
-                        Image(systemName: "pencil")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    Label {
+                        Text("\(Int(appState.windowHeight))")
+                    } icon: {
+                        Text("H:").fontWeight(.semibold).foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showingEditPopover, arrowEdge: .bottom) {
-                        EditWindowSizeView(
-                            width: appState.windowWidth,
-                            height: appState.windowHeight
-                        ) { newW, newH in
-                            appState.updateWindowSize(width: newW, height: newH)
-                            showingEditPopover = false
-                        } onCancel: {
-                            showingEditPopover = false
-                        }
+
+                    Image(systemName: "pencil")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .font(.system(.body, design: .monospaced))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    showingEditPopover = true
+                }
+                .popover(isPresented: $showingEditPopover, arrowEdge: .bottom) {
+                    EditWindowSizeView(
+                        width: appState.windowWidth,
+                        height: appState.windowHeight
+                    ) { newW, newH in
+                        appState.updateWindowSize(width: newW, height: newH)
+                        showingEditPopover = false
+                    } onReset: {
+                        appState.resetWindowSize()
+                        showingEditPopover = false
+                    } onCancel: {
+                        showingEditPopover = false
                     }
                 }
             }
-            
-            HStack(spacing: 20) {
-                Label {
-                    Text("\(Int(appState.windowWidth))")
-                } icon: {
-                    Text("W:").fontWeight(.semibold).foregroundColor(.secondary)
-                }
-                
-                Label {
-                    Text("\(Int(appState.windowHeight))")
-                } icon: {
-                    Text("H:").fontWeight(.semibold).foregroundColor(.secondary)
-                }
-            }
-            .font(.system(.body, design: .monospaced))
         }
     }
 }
@@ -253,19 +265,33 @@ struct EditWindowSizeView: View {
     @State private var height: Double
     
     var onSave: (CGFloat, CGFloat) -> Void
+    var onReset: () -> Void
     var onCancel: () -> Void
     
-    init(width: CGFloat, height: CGFloat, onSave: @escaping (CGFloat, CGFloat) -> Void, onCancel: @escaping () -> Void) {
+    init(width: CGFloat, height: CGFloat, onSave: @escaping (CGFloat, CGFloat) -> Void, onReset: @escaping () -> Void, onCancel: @escaping () -> Void) {
         _width = State(initialValue: Double(width))
         _height = State(initialValue: Double(height))
         self.onSave = onSave
+        self.onReset = onReset
         self.onCancel = onCancel
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Edit Window Size")
-                .font(.headline)
+            HStack {
+                Text("Edit Window Size")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(action: onReset) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Reset to default size")
+            }
             
             VStack(spacing: 10) {
                 HStack {
@@ -398,9 +424,11 @@ struct SettingsView: View {
                                 .buttonStyle(.plain)
                                 .popover(isPresented: $showingInfoPopover, arrowEdge: .top) {
                                     VStack(alignment: .leading, spacing: 8) {
-                                        Text("Shortcuts")
+                                        Text("Tab Shortcuts")
                                             .font(.headline)
-                                        Text("⌘ N : New Tab")
+                                        Text("⌘ 1-9 : Switch Tab")
+                                        Text("⌘ ⌫   : Delete Tab")
+                                        Text("⌘ N     : New Tab")
                                         
                                         Divider()
                                         
@@ -480,14 +508,7 @@ struct SettingsView: View {
             
             Divider()
             
-            Button(action: { NSApplication.shared.terminate(nil) }) {
-                HStack {
-                    Image(systemName: "power")
-                    Text("Quit Alias")
-                }
-                .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
+            QuitButtonView()
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -515,12 +536,8 @@ struct SettingsView: View {
     
     private func updateDropTargetIndex(currentIndex: Int, translation: CGSize) {
         let itemHeight: CGFloat = 36 // row height
-        
-        // Calculate the raw array index offset
         let offset = Int(round(translation.height / itemHeight))
         var newIndex = currentIndex + offset
-        
-        // Target is directly representing the exact array index it will end up at.
         let maxIndex = max(0, appState.tabs.count - 1)
         newIndex = max(0, min(newIndex, maxIndex))
         
@@ -531,8 +548,6 @@ struct SettingsView: View {
     
     private func handleDrop(tabId: UUID, at targetIndex: Int) {
         guard let currentIndex = appState.tabs.firstIndex(where: { $0.id == tabId }) else { return }
-        
-        // Prevent no-op triggers
         if targetIndex != currentIndex {
             appState.moveTab(from: IndexSet(integer: currentIndex), to: targetIndex)
         }

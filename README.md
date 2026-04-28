@@ -60,6 +60,10 @@ The app will appear in your menu bar with a terminal icon.
 - macOS 13.0 (Ventura) or later
 - Swift 5.9 or later (for building from source)
 
+## Contributing
+
+Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
+
 ## License
 
-MIT License - see LICENSE file
+MIT License - see [LICENSE](LICENSE) file

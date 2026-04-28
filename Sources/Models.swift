@@ -21,6 +21,14 @@ struct CommandItem: Identifiable, Codable, Equatable {
         self.command = command
         self.runInTerminal = runInTerminal
     }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        command = try container.decode(String.self, forKey: .command)
+        runInTerminal = try container.decodeIfPresent(Bool.self, forKey: .runInTerminal) ?? false
+    }
 }
 
 struct PasswordItem: Identifiable, Codable, Equatable {
@@ -67,8 +75,6 @@ enum CryptoError: Error {
 
 class CryptoService {
     static let shared = CryptoService()
-    
-    private let iterations = 100_000
     
     private init() {}
     
@@ -175,7 +181,6 @@ class AppState: ObservableObject {
     
     private func setupFocusObserver() {
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            // Use a slight delay to ensure the UI is ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self?.showingSettings = false
             }
@@ -317,7 +322,7 @@ class AppState: ObservableObject {
                     tabs[index].passwords.append(newItem)
                 }
             } catch {
-                print("Failed to encrypt password: \(error)")
+                // Silently fail for production or handle appropriately
             }
         }
     }
@@ -395,13 +400,6 @@ class AppState: ObservableObject {
             if let appleScript = NSAppleScript(source: script) {
                 var error: NSDictionary?
                 appleScript.executeAndReturnError(&error)
-                if let err = error {
-                    print("AppleScript Error: \(err)")
-                } else {
-                    print("AppleScript executed successfully")
-                }
-            } else {
-                print("Failed to create AppleScript from source")
             }
         } else {
             let task = Process()
@@ -416,7 +414,7 @@ class AppState: ObservableObject {
             do {
                 try task.run()
             } catch {
-                print("Failed to run background command: \(error)")
+                // Silently fail or log to a dedicated logger
             }
         }
     }

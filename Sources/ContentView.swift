@@ -10,7 +10,6 @@ struct ContentView: View {
     @State private var showingTabPasswordPrompt = false
     @State private var tabPasswordInput = ""
     @State private var tabPasswordError = false
-    @State private var pendingTabId: UUID?
     
     // For renaming
     @State private var renamingTabId: UUID?

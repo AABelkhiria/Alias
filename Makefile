@@ -1,13 +1,22 @@
 APP_NAME = Alias
-APP_BUNDLE = $(APP_NAME).app
-MACOS_DIR = $(APP_BUNDLE)/Contents/MacOS
+BUNDLE = $(APP_NAME).app
+
+.PHONY: all build clean run help
 
 all: build
 
-build:
-	@mkdir -p $(MACOS_DIR)
-	swiftc Sources/*.swift -o $(MACOS_DIR)/$(APP_NAME)
-	@echo "Done"
+build: ## Build the app bundle
+	@chmod +x build.sh
+	@./build.sh
 
-clean:
-	rm -rf $(APP_BUNDLE)
+clean: ## Remove build artifacts
+	@rm -rf $(BUNDLE)
+	@rm -rf .build/
+	@swift package clean
+	@echo "Cleaned."
+
+run: build ## Build and run the app
+	@open $(BUNDLE)
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'

@@ -373,7 +373,6 @@ struct PasswordTabView: View {
                     )
                 }
             }
-            // .background(Color(NSColor.controlBackgroundColor))
         }
         .onChange(of: tab.id) { _ in
             showingAddPopover = false

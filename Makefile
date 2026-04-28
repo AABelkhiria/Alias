@@ -1,13 +1,21 @@
 APP_NAME = Alias
 BUNDLE = $(APP_NAME).app
 
-.PHONY: all build clean run help
+.PHONY: all build build-arm64 build-x86_64 clean run help
 
 all: build
 
-build: ## Build the app bundle
+build: ## Build the app bundle (Universal Binary)
 	@chmod +x build.sh
 	@./build.sh
+
+build-arm64: ## Build for Apple Silicon (arm64)
+	@chmod +x build.sh
+	@./build.sh arm64
+
+build-x86_64: ## Build for Intel (x86_64)
+	@chmod +x build.sh
+	@./build.sh x86_64
 
 clean: ## Remove build artifacts
 	@rm -rf $(BUNDLE)
@@ -15,7 +23,16 @@ clean: ## Remove build artifacts
 	@swift package clean
 	@echo "Cleaned."
 
-run: build ## Build and run the app
+run: ## Build for current architecture and run the app
+	@chmod +x build.sh
+	@ARCH=$$(uname -m); \
+	if [ "$$ARCH" = "arm64" ]; then \
+		echo "Detected Apple Silicon (arm64)..."; \
+		./build.sh arm64; \
+	else \
+		echo "Detected Intel (x86_64)..."; \
+		./build.sh x86_64; \
+	fi
 	@open $(BUNDLE)
 
 help: ## Show this help

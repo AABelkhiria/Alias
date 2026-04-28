@@ -28,7 +28,8 @@ struct SettingsContentView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Shortcuts")
                                     .font(.headline)
-                                Text("⌘ N : New Tab")
+                                Text("⌘ 1-9 : Switch Tab")
+                                Text("⌘ N   : New Tab")
                                 
                                 Divider()
                                 

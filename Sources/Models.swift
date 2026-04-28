@@ -281,6 +281,20 @@ class AppState: ObservableObject {
         windowHeight = newHeight
     }
     
+    func selectTab(at index: Int) {
+        guard index >= 0 && index < tabs.count else { return }
+        let targetTabId = tabs[index].id
+        
+        if let currentId = selectedTabId, currentId != targetTabId {
+            let currentTab = tabs.first { $0.id == currentId }
+            if currentTab?.tabPasswordHash != nil {
+                lockTab(id: currentId)
+            }
+        }
+        
+        selectedTabId = targetTabId
+    }
+    
     func addTab(title: String, type: TabType) {
         let newTab = TabItem(title: title, type: type)
         tabs.append(newTab)

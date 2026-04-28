@@ -49,23 +49,12 @@ struct ContentView: View {
                 HStack(spacing: 8) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(appState.tabs) { tab in
+                        ForEach(Array(appState.tabs.enumerated()), id: \.element.id) { index, tab in
                             TabPill(tab: tab, 
                                     isActive: appState.selectedTabId == tab.id,
                                     renamingTabId: $renamingTabId,
                                     renameTitle: $renameTitle) {
-                                if let previousId = appState.selectedTabId, previousId != tab.id {
-                                    let currentTab = appState.tabs.first { $0.id == previousId }
-                                    let needsLock = currentTab?.tabPasswordHash != nil
-                                    if needsLock {
-                                        appState.lockTab(id: previousId)
-                                        DispatchQueue.main.async {
-                                            appState.selectedTabId = tab.id
-                                        }
-                                        return
-                                    }
-                                }
-                                appState.selectedTabId = tab.id
+                                appState.selectTab(at: index)
                             } onRenameCommit: { id, newTitle in
                                 appState.updateTab(id: id, newTitle: newTitle)
                                 renamingTabId = nil
@@ -152,6 +141,14 @@ struct ContentView: View {
                     .keyboardShortcut("+", modifiers: .command)
                 Button("") { appState.adjustWindowSize(delta: -50) }
                     .keyboardShortcut("-", modifiers: .command)
+                
+                // Tab shortcuts Cmd+1 to Cmd+9
+                ForEach(0..<min(appState.tabs.count, 9), id: \.self) { index in
+                    Button("") {
+                        appState.selectTab(at: index)
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                }
             }
             .opacity(0)
         )

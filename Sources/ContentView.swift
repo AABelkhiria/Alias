@@ -142,6 +142,9 @@ struct ContentView: View {
                 Button("") { appState.adjustWindowSize(delta: -50) }
                     .keyboardShortcut("-", modifiers: .command)
                 
+                Button("") { appState.showingSettings.toggle() }
+                    .keyboardShortcut("0", modifiers: .command)
+                
                 // Tab shortcuts Cmd+1 to Cmd+9
                 ForEach(0..<min(appState.tabs.count, 9), id: \.self) { index in
                     Button("") {

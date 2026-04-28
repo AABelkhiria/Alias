@@ -29,6 +29,7 @@ struct SettingsContentView: View {
                                 Text("Shortcuts")
                                     .font(.headline)
                                 Text("⌘ 1-9 : Switch Tab")
+                                Text("⌘ 0   : Toggle Settings")
                                 Text("⌘ N   : New Tab")
                                 
                                 Divider()

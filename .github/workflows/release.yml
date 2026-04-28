@@ -24,6 +24,22 @@ jobs:
       - name: Build App
         run: make build
 
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          mkdir dmg_root
+          cp -R Alias.app dmg_root/
+          create-dmg \
+            --volname "Alias" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --icon "Alias.app" 150 120 \
+            --hide-extension "Alias.app" \
+            --app-drop-link 450 120 \
+            "Alias.dmg" \
+            "dmg_root/"
+
       - name: Create Tag
         run: |
           git tag v${{ steps.get_version.outputs.VERSION }}
@@ -36,7 +52,7 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: Release v${{ steps.get_version.outputs.VERSION }}
-          files: Alias.app
+          files: Alias.dmg
           draft: false
           prerelease: false
         env:

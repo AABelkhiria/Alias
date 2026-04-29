@@ -11,46 +11,10 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          path: pr
+          fetch-depth: 0
 
-      - name: Get PR version
-        id: pr_version
-        run: |
-          VERSION=$(cat pr/VERSION | xargs)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "PR Version: $VERSION"
-
-      - name: Checkout main branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: main
-
-      - name: Get main version
-        id: main_version
-        run: |
-          VERSION=$(cat main/VERSION | xargs)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Main Version: $VERSION"
-
-      - name: Compare versions
-        run: |
-          PR_V=${{ steps.pr_version.outputs.VERSION }}
-          MAIN_V=${{ steps.main_version.outputs.VERSION }}
-          if [ "$PR_V" = "$MAIN_V" ]; then
-            echo "Error: Version in VERSION file ($PR_V) has not been incremented."
-            exit 1
-          fi
-          
-          # Simple lexical comparison for increment check
-          # For more robust semver checking, a specialized tool could be used
-          printf '%s\n%s\n' "$MAIN_V" "$PR_V" | sort -V -C
-          if [ $? -ne 0 ]; then
-             echo "Error: PR version ($PR_V) is not greater than main version ($MAIN_V)."
-             exit 1
-          fi
-          
-          echo "Version check passed: $PR_V > $MAIN_V"
+      - name: Version Guard
+        uses: AABelkhiria/version-guard@v1

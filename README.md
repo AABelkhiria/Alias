@@ -40,17 +40,21 @@ The built app will be created as `Alias.app` in the root directory.
 
 ### Running
 
-To build and run the app in one command:
+Because I don't have an Apple Developer certificate (and I'm not willing to pay the annual fee just for this small utility), the pre-built releases are **ad-hoc signed**. This means macOS Gatekeeper will flag them.
+
+You have two options to run Alias:
+
+#### Option 1: Build from Source (Recommended)
+Building the app locally on your machine will automatically sign it for your personal use, avoiding security warnings:
 ```bash
 make run
 ```
 
-Alternatively, double-click `Alias.app` or run:
-```bash
-open Alias.app
-```
-
-The app will appear in your menu bar with a terminal icon.
+#### Option 2: Use the Release Artifact
+If you download the `Alias.dmg` from the [Releases](https://github.com/AABelkhiria/Alias/releases) page:
+1. Drag the app to your **Applications** folder.
+2. **Right-click** (or Control-click) the app and select **Open**.
+3. Click **Open** again in the "Apple could not verify..." dialog or follow the instructions in the "Privacy & Security" system settings to allow it.
 
 ## Makefile Commands
 
